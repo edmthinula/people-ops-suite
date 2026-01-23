@@ -20,7 +20,6 @@ import {
   Grid,
   Typography,
   TextField,
-  IconButton,
   CircularProgress,
   Accordion,
   AccordionSummary,
@@ -57,12 +56,7 @@ import {
   deleteMeeting,
   fetchAttachments,
 } from "@slices/meetingSlice/meeting";
-import { useTheme } from "@mui/material/styles";
-
-// Shadows
-const MODERN_SHADOW = "0 4px 20px 0 rgba(0,0,0,0.05)";
-const HOVER_SHADOW = "0 8px 30px 0 rgba(0,0,0,0.1)";
-
+import { useTheme, alpha } from "@mui/material/styles";
 
 interface Attachment {
   title: string;
@@ -85,9 +79,19 @@ const formatDateTime = (dateTimeStr: string) => {
 };
 
 function MeetingHistory() {
-  const theme = useTheme()
+  const theme = useTheme();
   const dispatch = useAppDispatch();
   const meeting = useAppSelector((state) => state.meeting);
+
+  // Dynamic Shadows based on Theme Mode
+  const MODERN_SHADOW =
+    theme.palette.mode === "dark"
+      ? "0 4px 20px 0 rgba(0,0,0,0.5)"
+      : "0 4px 20px 0 rgba(0,0,0,0.05)";
+  const HOVER_SHADOW =
+    theme.palette.mode === "dark"
+      ? "0 8px 30px 0 rgba(0,0,0,0.6)"
+      : "0 8px 30px 0 rgba(0,0,0,0.1)";
 
   // Infinite Scroll State
   const [page, setPage] = useState(0);
@@ -111,7 +115,6 @@ function MeetingHistory() {
   >({});
 
   // Fetch Meetings
-  // 1. Initial Load & Search (Always triggers offset: 0)
   useEffect(() => {
     setPage(0);
     dispatch(
@@ -119,7 +122,6 @@ function MeetingHistory() {
     );
   }, [dispatch, filteredSearchQuery, pageSize]);
 
-  // 2. Infinite Scroll Trigger (Only runs when page > 0)
   useEffect(() => {
     if (page > 0) {
       dispatch(
@@ -138,9 +140,7 @@ function MeetingHistory() {
       (entries) => {
         if (entries[0].isIntersecting && meeting.state !== State.loading) {
           const currentCount = meeting.meetings?.meetings?.length || 0;
-          const totalCount = meeting.meetings?.count || 0; // Using the 'count' from your API
-
-          // Stop incrementing page if we reached the total count
+          const totalCount = meeting.meetings?.count || 0;
           if (currentCount < totalCount) {
             setPage((prev) => prev + 1);
           }
@@ -204,7 +204,7 @@ function MeetingHistory() {
       sx={{
         p: { xs: 2, md: 4 },
         margin: "0 auto",
-        bgcolor: "#fbfbfb",
+        bgcolor: "background.default", // Responsive background
         minHeight: "100vh",
       }}
     >
@@ -253,20 +253,23 @@ function MeetingHistory() {
           }}
           sx={{
             width: 350,
-            bgcolor: "white",
+            bgcolor: "background.paper", // Responsive paper background
             boxShadow: MODERN_SHADOW,
             borderRadius: 2,
             "& .MuiOutlinedInput-root": {
               borderRadius: 2,
-              "& fieldset": { border: "none" }, // Remove default border in favor of shadow
+              "& fieldset": { border: "none" },
               "&:hover fieldset": { border: "none" },
-              "&.Mui-focused fieldset": { border: `1px solid ${theme.palette.brand.main}` },
+              "&.Mui-focused fieldset": {
+                border: `1px solid ${theme.palette.brand.main}`,
+              },
             },
+            "& input": { color: "text.primary" },
           }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <Search color="action" />
+                <Search sx={{ color: "text.secondary" }} />
               </InputAdornment>
             ),
           }}
@@ -290,6 +293,7 @@ function MeetingHistory() {
                   textAlign: "center",
                   borderRadius: 3,
                   boxShadow: MODERN_SHADOW,
+                  bgcolor: "background.paper",
                 }}
               >
                 <Typography variant="h6" color="text.secondary">
@@ -309,19 +313,22 @@ function MeetingHistory() {
                     sx={{
                       boxShadow: MODERN_SHADOW,
                       borderRadius: "12px !important",
-                      bgcolor: "white",
+                      bgcolor: "background.paper",
                       border: "1px solid transparent",
                       "&:before": { display: "none" },
                       transition: "all 0.3s ease-in-out",
                       "&:hover": {
                         boxShadow: HOVER_SHADOW,
                         transform: "translateY(-2px)",
+                        borderColor: theme.palette.brand.main, // Brand color on hover
                       },
                     }}
                   >
                     {/* --- Accordion Header --- */}
                     <AccordionSummary
-                      expandIcon={<ExpandMore sx={{ color: theme.palette.brand.main }} />}
+                      expandIcon={
+                        <ExpandMore sx={{ color: theme.palette.brand.main }} />
+                      }
                       sx={{ px: 3, py: 1 }}
                     >
                       <Box
@@ -336,7 +343,7 @@ function MeetingHistory() {
                         <Typography
                           fontWeight="700"
                           variant="subtitle1"
-                          sx={{ color: "#2c3e50" }}
+                          sx={{ color: "text.primary" }}
                         >
                           {row.title}
                         </Typography>
@@ -366,7 +373,6 @@ function MeetingHistory() {
                     <AccordionDetails sx={{ px: 3, pb: 3, pt: 1 }}>
                       <Divider sx={{ mb: 3 }} />
                       <Grid container spacing={3}>
-                        {/* Info Grid */}
                         <Grid item xs={12} sm={6}>
                           <Typography
                             variant="caption"
@@ -385,6 +391,7 @@ function MeetingHistory() {
                               alignItems: "center",
                               gap: 1,
                               mt: 0.5,
+                              color: "text.primary",
                             }}
                           >
                             <Person
@@ -413,6 +420,7 @@ function MeetingHistory() {
                               alignItems: "center",
                               gap: 1,
                               mt: 0.5,
+                              color: "text.primary",
                             }}
                           >
                             <Loop
@@ -453,8 +461,8 @@ function MeetingHistory() {
                                   icon={<Group sx={{ pl: 0.5 }} />}
                                   size="small"
                                   sx={{
-                                    bgcolor: "#f5f5f5",
-                                    color: "#555",
+                                    bgcolor: theme.palette.action.selected, // Adapts to theme mode
+                                    color: "text.primary",
                                     fontWeight: 500,
                                   }}
                                 />
@@ -487,7 +495,10 @@ function MeetingHistory() {
                                   size={16}
                                   sx={{ color: theme.palette.brand.main }}
                                 />
-                                <Typography variant="caption">
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
                                   Loading...
                                 </Typography>
                               </Box>
@@ -510,14 +521,17 @@ function MeetingHistory() {
                                       }
                                       size="small"
                                       sx={{
-                                        borderColor: "#e0e0e0",
+                                        borderColor: theme.palette.divider,
                                         color: "text.secondary",
                                         textTransform: "none",
                                         borderRadius: 2,
                                         "&:hover": {
                                           borderColor: theme.palette.brand.main,
                                           color: theme.palette.brand.main,
-                                          bgcolor: "rgba(255, 80, 0, 0.04)",
+                                          bgcolor: alpha(
+                                            theme.palette.brand.main,
+                                            0.04,
+                                          ), // Dynamically calculated opacity
                                         },
                                       }}
                                     >
@@ -564,14 +578,16 @@ function MeetingHistory() {
                   </Accordion>
                 ))}
 
-                {/* Sentinel for Infinite Scroll */}
                 <div
                   ref={observerTarget}
                   style={{ height: "20px", marginTop: "10px" }}
                 >
                   {meeting.state === State.loading && page > 0 && (
                     <Box sx={{ display: "flex", justifyContent: "center" }}>
-                      <CircularProgress size={24} sx={{ color: theme.palette.brand.main }} />
+                      <CircularProgress
+                        size={24}
+                        sx={{ color: theme.palette.brand.main }}
+                      />
                     </Box>
                   )}
                 </div>
@@ -587,20 +603,28 @@ function MeetingHistory() {
               boxShadow: MODERN_SHADOW,
               borderRadius: 3,
               position: "sticky",
-              top: 24, // Keeps the sidebar fixed while scrolling the meeting list
+              top: 24,
+              bgcolor: "background.paper",
+              p: 3,
+              border: "1px solid transparent",
+              transition: "border-color 0.3s ease-in-out",
+              "&:hover": {
+                borderColor: theme.palette.brand.main,
+              },
             }}
           >
             <CardContent sx={{ p: 3 }}>
               <Typography
                 variant="h6"
                 fontWeight="700"
+                color="text.primary"
                 sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}
               >
-                <Schedule sx={{ color: theme.palette.brand.main }} /> Upcoming Meetings
+                <Schedule sx={{ color: theme.palette.brand.main }} /> Upcoming
+                Meetings
               </Typography>
 
               <List disablePadding>
-                {/* Dummy Data - Replace with actual state */}
                 {[
                   {
                     title: "Design System Sync",
@@ -622,7 +646,10 @@ function MeetingHistory() {
                     key={index}
                     disableGutters
                     sx={{
-                      borderBottom: index < 2 ? "1px solid #f0f0f0" : "none",
+                      borderBottom:
+                        index < 2
+                          ? `1px solid ${theme.palette.divider}`
+                          : "none",
                       py: 2,
                     }}
                   >
@@ -658,7 +685,7 @@ function MeetingHistory() {
                           height: 22,
                           fontSize: "0.7rem",
                           color: theme.palette.brand.main,
-                          bgcolor: "rgba(255, 80, 0, 0.1)",
+                          bgcolor: alpha(theme.palette.brand.main, 0.1),
                           fontWeight: "bold",
                         }}
                       />
@@ -667,11 +694,7 @@ function MeetingHistory() {
                 ))}
               </List>
 
-              <Button
-                fullWidth
-                variant="contained"
-                disableElevation
-              >
+              <Button fullWidth variant="contained" disableElevation>
                 View more meetings
               </Button>
             </CardContent>
