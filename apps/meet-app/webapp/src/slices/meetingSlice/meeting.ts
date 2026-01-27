@@ -46,6 +46,8 @@ interface MeetingState {
   errorMessage: string | null;
   meetings: Meetings | null;
   meetingTypes: string[] | null;
+  dateRangeMeetings: Meeting[] | null;
+  dateRangeStatus: State;
   backgroundProcess: boolean;
   backgroundProcessMessage: string | null;
 }
@@ -91,6 +93,8 @@ const initialState: MeetingState = {
   errorMessage: "",
   meetings: null,
   meetingTypes: null,
+  dateRangeMeetings: null,
+  dateRangeStatus: State.idle,
   backgroundProcess: false,
   backgroundProcessMessage: null,
 };
@@ -171,7 +175,11 @@ export const fetchMeetings = createAsyncThunk(
       title,
       limit,
       offset,
-    }: { title: string | null; limit: number; offset: number },
+    }: {
+      title: string | null;
+      limit: number;
+      offset: number;
+    },
     { dispatch },
   ) => {
     APIService.getCancelToken().cancel();
@@ -186,11 +194,51 @@ export const fetchMeetings = createAsyncThunk(
           resolve(response.data);
         })
         .catch((error) => {
+          console.log(error);
           const errorMessage =
             error.response?.data?.message ||
             (error.response?.status === HttpStatusCode.InternalServerError
               ? SnackMessage.error.fetchMeetings
               : "An unknown error occurred.");
+          dispatch(
+            enqueueSnackbarMessage({
+              message: errorMessage,
+              type: "error",
+            }),
+          );
+          reject(error);
+        });
+    });
+  },
+);
+
+export const fetchMeetingsByDates = createAsyncThunk(
+  "meeting/fetchMeetingsByDates",
+  async (
+    {
+      startDate,
+      endDate,
+      limit,
+    }: { startDate: string; endDate: string; limit: number },
+    { dispatch },
+  ) => {
+    APIService.getCancelToken().cancel();
+    const newCancelTokenSource = APIService.updateCancelToken();
+    return new Promise<Meetings>((resolve, reject) => {
+      APIService.getInstance()
+        .get(AppConfig.serviceUrls.meetings, {
+          params: { startDate, endDate, limit },
+          cancelToken: newCancelTokenSource.token,
+        })
+        .then((response) => {
+          resolve(response.data);
+        })
+        .catch((error) => {
+          const errorMessage =
+            error.response?.data?.message ||
+            (error.response?.status === HttpStatusCode.InternalServerError
+              ? SnackMessage.error.fetchMeetings
+              : "Failed to fetch upcoming meetings.");
           dispatch(
             enqueueSnackbarMessage({
               message: errorMessage,
@@ -338,6 +386,17 @@ const MeetingSlice = createSlice({
       .addCase(fetchMeetings.rejected, (state) => {
         state.state = State.failed;
         state.stateMessage = "Failed to fetch!";
+      })
+      .addCase(fetchMeetingsByDates.pending, (state) => {
+        state.dateRangeStatus = State.loading;
+        state.stateMessage = "Fetching meetings by dates...";
+      })
+      .addCase(fetchMeetingsByDates.fulfilled, (state, action) => {
+        state.dateRangeStatus = State.success;
+        state.dateRangeMeetings = action.payload.meetings;
+      })
+      .addCase(fetchMeetingsByDates.rejected, (state) => {
+        state.dateRangeStatus = State.failed;
       })
       .addCase(deleteMeeting.pending, (state) => {
         state.submitState = State.loading;

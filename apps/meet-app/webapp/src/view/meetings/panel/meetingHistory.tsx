@@ -33,9 +33,10 @@ import {
   ListItemText,
   Paper,
   InputAdornment,
+  Snackbar,
 } from "@mui/material";
 import { State } from "@/types/types";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { ConfirmationType } from "@/types/types";
 import ErrorHandler from "@component/common/ErrorHandler";
 import { useAppDispatch, useAppSelector } from "@slices/store";
@@ -55,6 +56,8 @@ import {
   fetchMeetings,
   deleteMeeting,
   fetchAttachments,
+  Meeting,
+  fetchMeetingsByDates,
 } from "@slices/meetingSlice/meeting";
 import { useTheme, alpha } from "@mui/material/styles";
 
@@ -82,6 +85,12 @@ function MeetingHistory() {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const meeting = useAppSelector((state) => state.meeting);
+  const upcomingMeetings = useAppSelector(
+    (state) => state.meeting.dateRangeMeetings,
+  );
+  const upcomingMeetingsLoading = useAppSelector(
+    (state) => state.meeting.dateRangeStatus,
+  );
 
   // Dynamic Shadows based on Theme Mode
   const MODERN_SHADOW =
@@ -105,6 +114,8 @@ function MeetingHistory() {
   const [filteredSearchQuery, setFilteredSearchQuery] = useState<string | null>(
     null,
   );
+  const [isUpcomingMeetingsFetched, setIsUpcomingMeetingsFetched] =
+    useState(false);
 
   // Attachment Caching (Map meetingId -> Attachment[])
   const [attachmentMap, setAttachmentMap] = useState<
@@ -114,12 +125,45 @@ function MeetingHistory() {
     Record<number, boolean>
   >({});
 
-  // Fetch Meetings
+  // Fetch Meetings (Initial Load & Search)
   useEffect(() => {
     setPage(0);
-    dispatch(
+
+    // 1. Start the Main List Fetch
+    const mainFetchPromise = dispatch(
       fetchMeetings({ title: filteredSearchQuery, limit: pageSize, offset: 0 }),
     );
+
+    // 2. Chain the Second Call using .then()
+    mainFetchPromise
+      .unwrap() // This ensures we only proceed if the first call SUCCEEDED
+      .then(() => {
+        // logic to fetch upcoming meetings
+        if (!isUpcomingMeetingsFetched) {
+          setIsUpcomingMeetingsFetched(true)
+          const today = new Date();
+          const twoDaysLater = new Date();
+          twoDaysLater.setDate(today.getDate() + 2);
+
+          dispatch(
+            fetchMeetingsByDates({
+              startDate: today.toISOString(),
+              endDate: twoDaysLater.toISOString(),
+              limit: 5,
+            }),
+          );
+        }
+      })
+      .catch((error) => {
+        // If the main list was cancelled (e.g. user typed fast),
+        // we safely ignore it and don't try to fetch the second list.
+        console.log("Main fetch skipped or failed:", error);
+      });
+
+    // Cleanup: If the component unmounts, abort the request
+    return () => {
+      mainFetchPromise.abort();
+    };
   }, [dispatch, filteredSearchQuery, pageSize]);
 
   useEffect(() => {
@@ -195,6 +239,50 @@ function MeetingHistory() {
       "Yes",
       "No",
     );
+  };
+  // Section related to upcoming sidebar
+
+  const sortedUpcomingMeetings = useMemo(() => {
+    if (!upcomingMeetings) return [];
+    return [...upcomingMeetings].sort(
+      (a, b) =>
+        new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+    );
+  }, [upcomingMeetings]);
+
+  const createDateTime = (date: Date) => {
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
+
+    // Get date parts for comparison
+    const isToday =
+      date.getFullYear() === now.getFullYear() &&
+      date.getMonth() === now.getMonth() &&
+      date.getDate() === now.getDate();
+
+    const isTomorrow =
+      date.getFullYear() === tomorrow.getFullYear() &&
+      date.getMonth() === tomorrow.getMonth() &&
+      date.getDate() === tomorrow.getDate();
+
+    const timeStr = date.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    if (isToday) {
+      return `Today, ${timeStr}`;
+    } else if (isTomorrow) {
+      return `Tomorrow, ${timeStr}`;
+    } else {
+      // Example: Jan 26, 09:00 AM
+      const dateStr = date.toLocaleString("en-GB", {
+        month: "short",
+        day: "2-digit",
+      });
+      return `${dateStr}, ${timeStr}`;
+    }
   };
 
   const meetingList = meeting.meetings?.meetings ?? [];
@@ -314,7 +402,7 @@ function MeetingHistory() {
                       boxShadow: MODERN_SHADOW,
                       borderRadius: "12px !important",
                       bgcolor: "background.paper",
-                      border: "1px solid transparent",
+                      border: `1.5px solid #d1d3d4`,
                       "&:before": { display: "none" },
                       transition: "all 0.3s ease-in-out",
                       "&:hover": {
@@ -606,7 +694,7 @@ function MeetingHistory() {
               top: 24,
               bgcolor: "background.paper",
               p: 3,
-              border: "1px solid transparent",
+              border: "1.5px solid #d1d3d4",
               transition: "border-color 0.3s ease-in-out",
               "&:hover": {
                 borderColor: theme.palette.brand.main,
@@ -625,75 +713,73 @@ function MeetingHistory() {
               </Typography>
 
               <List disablePadding>
-                {[
-                  {
-                    title: "Design System Sync",
-                    time: "Today, 14:00 PM",
-                    tag: "SOON",
-                  },
-                  {
-                    title: "Quarterly Review",
-                    time: "Tomorrow, 10:00 AM",
-                    tag: null,
-                  },
-                  {
-                    title: "Client Onboarding",
-                    time: "Jan 26, 09:00 AM",
-                    tag: null,
-                  },
-                ].map((item, index) => (
-                  <ListItem
-                    key={index}
-                    disableGutters
-                    sx={{
-                      borderBottom:
-                        index < 2
-                          ? `1px solid ${theme.palette.divider}`
-                          : "none",
-                      py: 2,
-                    }}
-                  >
-                    <ListItemText
-                      primary={
-                        <Typography
-                          variant="subtitle2"
-                          fontWeight="700"
-                          color="text.primary"
-                        >
-                          {item.title}
-                        </Typography>
-                      }
-                      secondary={
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            mt: 0.5,
-                          }}
-                        >
-                          <Typography variant="caption" color="text.secondary">
-                            {item.time}
-                          </Typography>
-                        </Box>
-                      }
-                    />
-                    {item.tag && (
-                      <Chip
-                        label={item.tag}
-                        size="small"
-                        sx={{
-                          height: 22,
-                          fontSize: "0.7rem",
-                          color: theme.palette.brand.main,
-                          bgcolor: alpha(theme.palette.brand.main, 0.1),
-                          fontWeight: "bold",
-                        }}
-                      />
-                    )}
+                {upcomingMeetingsLoading === State.loading ? (
+                  <ListItem disableGutters>
+                    <CircularProgress size={20} />
                   </ListItem>
-                ))}
+                ) : sortedUpcomingMeetings.length > 0 ? (
+                  sortedUpcomingMeetings.map((item, index) => (
+                    <ListItem
+                      key={index}
+                      disableGutters
+                      sx={{
+                        borderBottom:
+                          index < sortedUpcomingMeetings.length - 1
+                            ? `1px solid ${theme.palette.divider}`
+                            : "none",
+                        py: 2,
+                      }}
+                    >
+                      <ListItemText
+                        primary={
+                          <Typography
+                            variant="subtitle2"
+                            fontWeight="700"
+                            color="text.primary"
+                            component="span"
+                          >
+                            {item.title}
+                          </Typography>
+                        }
+                        secondary={
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            component="span"
+                            sx={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              mt: 0.5,
+                            }}
+                          >
+                            {createDateTime(new Date(item.startTime))}
+                          </Typography>
+                        }
+                      />
+                      {/* Uncomment and use if you want to show a tag */}
+                      {/* {item.tag && (
+          <Chip
+            label={item.tag}
+            size="small"
+            sx={{
+              height: 22,
+              fontSize: "0.7rem",
+              color: theme.palette.brand.main,
+              bgcolor: alpha(theme.palette.brand.main, 0.1),
+              fontWeight: "bold",
+            }}
+          />
+        )} */}
+                    </ListItem>
+                  ))
+                ) : (
+                  <ListItem disableGutters>
+                    <Typography variant="body2" color="text.secondary">
+                      No upcoming meetings.
+                    </Typography>
+                  </ListItem>
+                )}
               </List>
-
               <Button fullWidth variant="contained" disableElevation>
                 View more meetings
               </Button>
