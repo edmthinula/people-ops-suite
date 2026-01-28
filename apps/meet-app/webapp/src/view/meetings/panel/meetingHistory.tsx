@@ -33,9 +33,9 @@ import {
   ListItemText,
   Paper,
   InputAdornment,
-  Snackbar,
 } from "@mui/material";
 import { State } from "@/types/types";
+import useDebounce from "@utils/useDebounce";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { ConfirmationType } from "@/types/types";
 import ErrorHandler from "@component/common/ErrorHandler";
@@ -56,7 +56,6 @@ import {
   fetchMeetings,
   deleteMeeting,
   fetchAttachments,
-  Meeting,
   fetchMeetingsByDates,
 } from "@slices/meetingSlice/meeting";
 import { useTheme, alpha } from "@mui/material/styles";
@@ -111,11 +110,10 @@ function MeetingHistory() {
   const dialogContext = useConfirmationModalContext();
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [filteredSearchQuery, setFilteredSearchQuery] = useState<string | null>(
-    null,
-  );
   const [isUpcomingMeetingsFetched, setIsUpcomingMeetingsFetched] =
     useState(false);
+
+  const debouncedSearchTerm = useDebounce(searchQuery, 500);
 
   // Attachment Caching (Map meetingId -> Attachment[])
   const [attachmentMap, setAttachmentMap] = useState<
@@ -131,7 +129,7 @@ function MeetingHistory() {
 
     // 1. Start the Main List Fetch
     const mainFetchPromise = dispatch(
-      fetchMeetings({ title: filteredSearchQuery, limit: pageSize, offset: 0 }),
+      fetchMeetings({ title: debouncedSearchTerm, limit: pageSize, offset: 0 }),
     );
 
     // 2. Chain the Second Call using .then()
@@ -140,7 +138,7 @@ function MeetingHistory() {
       .then(() => {
         // logic to fetch upcoming meetings
         if (!isUpcomingMeetingsFetched) {
-          setIsUpcomingMeetingsFetched(true)
+          setIsUpcomingMeetingsFetched(true);
           const today = new Date();
           const twoDaysLater = new Date();
           twoDaysLater.setDate(today.getDate() + 2);
@@ -164,19 +162,19 @@ function MeetingHistory() {
     return () => {
       mainFetchPromise.abort();
     };
-  }, [dispatch, filteredSearchQuery, pageSize]);
+  }, [dispatch, debouncedSearchTerm, pageSize]);
 
   useEffect(() => {
     if (page > 0) {
       dispatch(
         fetchMeetings({
-          title: filteredSearchQuery,
+          title: debouncedSearchTerm,
           limit: pageSize,
           offset: page * pageSize,
         }),
       );
     }
-  }, [page, dispatch, filteredSearchQuery, pageSize]);
+  }, [page, dispatch, debouncedSearchTerm, pageSize]);
 
   // Infinite Scroll Observer
   useEffect(() => {
@@ -229,7 +227,7 @@ function MeetingHistory() {
           setPage(0);
           dispatch(
             fetchMeetings({
-              title: filteredSearchQuery,
+              title: debouncedSearchTerm,
               limit: pageSize,
               offset: 0,
             }),
@@ -333,23 +331,17 @@ function MeetingHistory() {
           size="small"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              setFilteredSearchQuery(searchQuery);
-              setPage(0);
-            }
-          }}
           sx={{
             width: 350,
-            bgcolor: "background.paper", // Responsive paper background
+            bgcolor: "background.paper",
             boxShadow: MODERN_SHADOW,
             borderRadius: 2,
             "& .MuiOutlinedInput-root": {
               borderRadius: 2,
-              "& fieldset": { border: "none" },
-              "&:hover fieldset": { border: "none" },
+              "& fieldset": { border: "1.5px solid #d1d3d4" },
+              "&:hover fieldset": { border: "1.5px solid #d1d3d4" },
               "&.Mui-focused fieldset": {
-                border: `1px solid ${theme.palette.brand.main}`,
+                border: `1.5px solid ${theme.palette.brand.main}`,
               },
             },
             "& input": { color: "text.primary" },
