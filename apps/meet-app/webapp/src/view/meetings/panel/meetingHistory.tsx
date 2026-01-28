@@ -110,8 +110,7 @@ function MeetingHistory() {
   const dialogContext = useConfirmationModalContext();
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [isUpcomingMeetingsFetched, setIsUpcomingMeetingsFetched] =
-    useState(false);
+  const hasFetchedUpcoming = useRef(false);
 
   const debouncedSearchTerm = useDebounce(searchQuery, 500);
 
@@ -137,25 +136,9 @@ function MeetingHistory() {
       .unwrap() // This ensures we only proceed if the first call SUCCEEDED
       .then(() => {
         // logic to fetch upcoming meetings
-        if (!isUpcomingMeetingsFetched) {
-          setIsUpcomingMeetingsFetched(true);
-          const today = new Date();
-          const twoDaysLater = new Date();
-          twoDaysLater.setDate(today.getDate() + 2);
-
-          dispatch(
-            fetchMeetingsByDates({
-              startDate: today.toISOString(),
-              endDate: twoDaysLater.toISOString(),
-              limit: 5,
-            }),
-          );
+        if (!hasFetchedUpcoming.current) {
+          refreshUpcomingMeetings();
         }
-      })
-      .catch((error) => {
-        // If the main list was cancelled (e.g. user typed fast),
-        // we safely ignore it and don't try to fetch the second list.
-        console.log("Main fetch skipped or failed:", error);
       });
 
     // Cleanup: If the component unmounts, abort the request
@@ -213,6 +196,21 @@ function MeetingHistory() {
     }
   };
 
+  const refreshUpcomingMeetings = () => {
+    const today = new Date();
+    const twoDaysLater = new Date();
+    twoDaysLater.setDate(today.getDate() + 2);
+
+    // Return the dispatch promise in case we need to chain it later
+    return dispatch(
+      fetchMeetingsByDates({
+        startDate: today.toISOString(),
+        endDate: twoDaysLater.toISOString(),
+        limit: 5,
+      }),
+    );
+  };
+
   const handleDeleteMeeting = (meetingId: number, meetingTitle: string) => {
     dialogContext.showConfirmation(
       "Confirm Deletion",
@@ -222,17 +220,28 @@ function MeetingHistory() {
       ConfirmationType.accept,
       async () => {
         setLoadingDelete(true);
-        await dispatch(deleteMeeting(meetingId)).then(() => {
-          setLoadingDelete(false);
-          setPage(0);
-          dispatch(
-            fetchMeetings({
-              title: debouncedSearchTerm,
-              limit: pageSize,
-              offset: 0,
-            }),
-          );
-        });
+        await dispatch(deleteMeeting(meetingId))
+          .then(() => {
+            setPage(0);
+            dispatch(
+              fetchMeetings({
+                title: debouncedSearchTerm,
+                limit: pageSize,
+                offset: 0,
+              }),
+            )
+              .unwrap()
+              .then(() => {
+                if (
+                  upcomingMeetings?.some((up) => up.meetingId === meetingId)
+                ) {
+                  refreshUpcomingMeetings();
+                }
+              });
+          })
+          .finally(() => {
+            setLoadingDelete(false);
+          });
       },
       "Yes",
       "No",
@@ -693,7 +702,7 @@ function MeetingHistory() {
               },
             }}
           >
-            <CardContent sx={{ p: 3 }}>
+            <CardContent>
               <Typography
                 variant="h6"
                 fontWeight="700"
@@ -720,48 +729,37 @@ function MeetingHistory() {
                             ? `1px solid ${theme.palette.divider}`
                             : "none",
                         py: 2,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
                       }}
                     >
-                      <ListItemText
-                        primary={
-                          <Typography
-                            variant="subtitle2"
-                            fontWeight="700"
-                            color="text.primary"
-                            component="span"
-                          >
-                            {item.title}
-                          </Typography>
-                        }
-                        secondary={
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            component="span"
-                            sx={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              mt: 0.5,
-                            }}
-                          >
-                            {createDateTime(new Date(item.startTime))}
-                          </Typography>
-                        }
-                      />
-                      {/* Uncomment and use if you want to show a tag */}
-                      {/* {item.tag && (
-          <Chip
-            label={item.tag}
-            size="small"
-            sx={{
-              height: 22,
-              fontSize: "0.7rem",
-              color: theme.palette.brand.main,
-              bgcolor: alpha(theme.palette.brand.main, 0.1),
-              fontWeight: "bold",
-            }}
-          />
-        )} */}
+                      {/* Time on the left */}
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{
+                          minWidth: 90,
+                          textAlign: "left",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          mr: 2,
+                        }}
+                      >
+                        {createDateTime(new Date(item.startTime))}
+                      </Typography>
+                      {/* Title and details on the right */}
+                      <Box sx={{ flex: 1 }}>
+                        <Typography
+                          variant="subtitle2"
+                          fontWeight="700"
+                          color="text.primary"
+                          component="span"
+                        >
+                          {item.title}
+                        </Typography>
+                        {/* Add more details here if needed */}
+                      </Box>
                     </ListItem>
                   ))
                 ) : (
@@ -773,7 +771,7 @@ function MeetingHistory() {
                 )}
               </List>
               <Button fullWidth variant="contained" disableElevation>
-                View more meetings
+                View more upcoming meetings
               </Button>
             </CardContent>
           </Card>
