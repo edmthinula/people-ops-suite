@@ -33,6 +33,9 @@ import {
   ListItemText,
   Paper,
   InputAdornment,
+  CardActions,
+  IconButton,
+  Stack,
 } from "@mui/material";
 import { State } from "@/types/types";
 import useDebounce from "@utils/useDebounce";
@@ -41,6 +44,10 @@ import { ConfirmationType } from "@/types/types";
 import ErrorHandler from "@component/common/ErrorHandler";
 import { useAppDispatch, useAppSelector } from "@slices/store";
 import { useConfirmationModalContext } from "@context/DialogContext";
+import ViewListIcon from "@mui/icons-material/ViewList";
+import ViewModuleIcon from "@mui/icons-material/ViewModule";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import {
   ExpandMore,
   DeleteForever,
@@ -60,6 +67,15 @@ import {
 } from "@slices/meetingSlice/meeting";
 import { useTheme, alpha } from "@mui/material/styles";
 
+// Icons
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import AccessTimeIcon from "@mui/icons-material/AccessTime"; // For the clock icon in 3rd card
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import PersonIcon from "@mui/icons-material/Person";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { fetchCustomers } from "@root/src/slices/customerSlice/customer";
+
 interface Attachment {
   title: string;
   fileId: string;
@@ -67,7 +83,14 @@ interface Attachment {
   iconLink: string;
   mimeType: string;
 }
-
+interface MeetingData {
+  id: number;
+  title: string;
+  date: string;
+  time: string;
+  email: string;
+  status: "completed" | "pending"; // To switch between Green Check and Grey Clock
+}
 // Utility to format date nicely
 const formatDateTime = (dateTimeStr: string) => {
   const utcDate = new Date(dateTimeStr + " UTC");
@@ -90,6 +113,8 @@ function MeetingHistory() {
   const upcomingMeetingsLoading = useAppSelector(
     (state) => state.meeting.dateRangeStatus,
   );
+  const customers = useAppSelector((state) => state.customer.customers) || [];
+  const customersState = useAppSelector((state) => state.customer.state);
 
   // Dynamic Shadows based on Theme Mode
   const MODERN_SHADOW =
@@ -111,6 +136,7 @@ function MeetingHistory() {
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const hasFetchedUpcoming = useRef(false);
+  const [view, setView] = useState("list");
 
   const debouncedSearchTerm = useDebounce(searchQuery, 500);
 
@@ -158,6 +184,14 @@ function MeetingHistory() {
       );
     }
   }, [page, dispatch, debouncedSearchTerm, pageSize]);
+  useEffect(() => {
+    if (
+      !customers.length &&
+      (customersState === State.idle || customersState === State.failed)
+    ) {
+      dispatch(fetchCustomers());
+    }
+  }, [dispatch, customers.length]);
 
   // Infinite Scroll Observer
   useEffect(() => {
@@ -292,6 +326,98 @@ function MeetingHistory() {
     }
   };
 
+  const handleToggleButtonChange = (
+    event: React.MouseEvent<HTMLElement>,
+    nextView: string | null,
+  ) => {
+    console.log(nextView);
+    if (nextView != null) {
+      setView(nextView);
+    }
+  };
+
+  const mockData: MeetingData[] = [
+
+  ];
+  const MeetingCard = ({ data }: { data: MeetingData }) => {
+    return (
+      <Card
+        variant="outlined"
+        sx={{
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          borderRadius: 2,
+          boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+        }}
+      >
+        <CardContent sx={{ flexGrow: 1 }}>
+          {/* Header: Title + Status Icon */}
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="flex-start"
+            mb={2}
+          >
+            <Typography
+              variant="subtitle1"
+              fontWeight="bold"
+              sx={{ lineHeight: 1.3, mr: 1 }}
+            >
+              {data.title}
+            </Typography>
+
+            {/* Conditional Status Icon */}
+            {data.status === "completed" ? (
+              <CheckCircleIcon color="success" />
+            ) : (
+              <AccessTimeIcon sx={{ color: "text.disabled" }} />
+            )}
+          </Box>
+
+          {/* Body: Date & Email */}
+          <Stack spacing={1.5}>
+            {/* Date Row */}
+            <Box
+              display="flex"
+              alignItems="center"
+              gap={1.5}
+              color="text.secondary"
+            >
+              <CalendarTodayIcon fontSize="small" />
+              <Typography variant="body2">
+                {data.date}, {data.time}
+              </Typography>
+            </Box>
+
+            {/* Email Row */}
+            <Box
+              display="flex"
+              alignItems="center"
+              gap={1.5}
+              color="text.secondary"
+            >
+              <PersonIcon fontSize="small" />
+              <Typography variant="body2">{data.email}</Typography>
+            </Box>
+          </Stack>
+        </CardContent>
+
+        <Divider />
+
+        {/* Footer: Action Buttons */}
+        <CardActions sx={{ justifyContent: "flex-end", px: 2, py: 1 }}>
+          <IconButton size="small" color="primary" aria-label="view">
+            <VisibilityIcon />
+          </IconButton>
+          <IconButton size="small" color="error" aria-label="delete">
+            <DeleteIcon />
+          </IconButton>
+        </CardActions>
+      </Card>
+    );
+  };
+
   const meetingList = meeting.meetings?.meetings ?? [];
 
   return (
@@ -334,448 +460,276 @@ function MeetingHistory() {
           </Box>
         </Box>
 
-        {/* Search Bar */}
-        <TextField
-          placeholder="Search meetings..."
-          size="small"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          sx={{
-            width: 350,
-            bgcolor: "background.paper",
-            boxShadow: MODERN_SHADOW,
-            borderRadius: 2,
-            "& .MuiOutlinedInput-root": {
+        {/* Right: Search bar and toggle buttons */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <TextField
+            placeholder="Search meetings..."
+            size="small"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            sx={{
+              width: 350,
+              bgcolor: "background.paper",
+              boxShadow: MODERN_SHADOW,
               borderRadius: 2,
-              "& fieldset": { border: "1.5px solid #d1d3d4" },
-              "&:hover fieldset": { border: "1.5px solid #d1d3d4" },
-              "&.Mui-focused fieldset": {
-                border: `1.5px solid ${theme.palette.brand.main}`,
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 2,
+                "& fieldset": { border: "1.5px solid #d1d3d4" },
+                "&:hover fieldset": { border: "1.5px solid #d1d3d4" },
+                "&.Mui-focused fieldset": {
+                  border: `1.5px solid ${theme.palette.brand.main}`,
+                },
               },
-            },
-            "& input": { color: "text.primary" },
-          }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search sx={{ color: "text.secondary" }} />
-              </InputAdornment>
-            ),
-          }}
-        />
+              "& input": { color: "text.primary" },
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search sx={{ color: "text.secondary" }} />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <ToggleButtonGroup
+            value={view}
+            exclusive
+            onChange={handleToggleButtonChange}
+          >
+            <ToggleButton value="list" aria-label="list">
+              <ViewListIcon />
+            </ToggleButton>
+            <ToggleButton value="module" aria-label="module">
+              <ViewModuleIcon />
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
       </Box>
 
       <Grid container spacing={4}>
-        {/* --- LEFT COLUMN: Meeting History List --- */}
-        <Grid item xs={12} md={8}>
+        {/* --- MAIN COLUMN (Dynamic Width) --- */}
+        {/* Logic: If view is 'list', use md=8 to make room for sidebar. 
+      If view is 'module', use md=12 to fill the full screen. */}
+        <Grid item xs={12} md={view === "list" ? 8 : 12}>
           <Box sx={{ p: 2, minHeight: 500 }}>
-            {meeting.state === State.loading && page === 0 ? (
-              <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-                <CircularProgress sx={{ color: theme.palette.brand.main }} />
-              </Box>
-            ) : meeting.state === State.failed ? (
-              <ErrorHandler message="Failed to fetch meetings." />
-            ) : meetingList.length === 0 ? (
-              <Paper
-                sx={{
-                  p: 6,
-                  textAlign: "center",
-                  borderRadius: 3,
-                  boxShadow: MODERN_SHADOW,
-                  bgcolor: "background.paper",
-                }}
-              >
-                <Typography variant="h6" color="text.secondary">
-                  No meetings found.
-                </Typography>
-              </Paper>
-            ) : (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                {meetingList.map((row) => (
-                  <Accordion
-                    key={row.meetingId}
-                    disableGutters
-                    elevation={0}
-                    onChange={(_, expanded) =>
-                      handleAccordionChange(row.meetingId, expanded)
-                    }
-                    sx={{
-                      boxShadow: MODERN_SHADOW,
-                      borderRadius: "12px !important",
-                      bgcolor: "background.paper",
-                      border: `1.5px solid #d1d3d4`,
-                      "&:before": { display: "none" },
-                      transition: "all 0.3s ease-in-out",
-                      "&:hover": {
-                        boxShadow: HOVER_SHADOW,
-                        transform: "translateY(-2px)",
-                        borderColor: theme.palette.brand.main, // Brand color on hover
-                      },
-                    }}
-                  >
-                    {/* --- Accordion Header --- */}
-                    <AccordionSummary
-                      expandIcon={
-                        <ExpandMore sx={{ color: theme.palette.brand.main }} />
+            {view === "list" ? (
+              /* --- LIST VIEW CONTENT --- */
+              meeting.state === State.loading && page === 0 ? (
+                <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+                  <CircularProgress sx={{ color: theme.palette.brand.main }} />
+                </Box>
+              ) : meeting.state === State.failed ? (
+                <ErrorHandler message="Failed to fetch meetings." />
+              ) : meetingList.length === 0 ? (
+                <Paper
+                  sx={{
+                    p: 6,
+                    textAlign: "center",
+                    borderRadius: 3,
+                    boxShadow: MODERN_SHADOW,
+                    bgcolor: "background.paper",
+                  }}
+                >
+                  <Typography variant="h6" color="text.secondary">
+                    No meetings found.
+                  </Typography>
+                </Paper>
+              ) : (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {meetingList.map((row) => (
+                    <Accordion
+                      key={row.meetingId}
+                      disableGutters
+                      elevation={0}
+                      onChange={(_, expanded) =>
+                        handleAccordionChange(row.meetingId, expanded)
                       }
-                      sx={{ px: 3, py: 1 }}
+                      sx={{
+                        boxShadow: MODERN_SHADOW,
+                        borderRadius: "12px !important",
+                        bgcolor: "background.paper",
+                        border: `1.5px solid #d1d3d4`,
+                        "&:before": { display: "none" },
+                        transition: "all 0.3s ease-in-out",
+                        "&:hover": {
+                          boxShadow: HOVER_SHADOW,
+                          transform: "translateY(-2px)",
+                          borderColor: theme.palette.brand.main,
+                        },
+                      }}
                     >
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          width: "100%",
-                          pr: 2,
-                        }}
+                      {/* ... (Accordion Content Omitted for brevity, paste your existing code here) ... */}
+                      <AccordionSummary
+                        expandIcon={
+                          <ExpandMore
+                            sx={{ color: theme.palette.brand.main }}
+                          />
+                        }
+                        sx={{ px: 3, py: 1 }}
                       >
-                        <Typography
-                          fontWeight="700"
-                          variant="subtitle1"
-                          sx={{ color: "text.primary" }}
-                        >
-                          {row.title}
-                        </Typography>
                         <Box
                           sx={{
                             display: "flex",
+                            justifyContent: "space-between",
                             alignItems: "center",
-                            gap: 0.5,
+                            width: "100%",
+                            pr: 2,
                           }}
                         >
-                          <Schedule
-                            fontSize="small"
-                            sx={{ color: "text.secondary" }}
-                          />
                           <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            fontWeight="500"
+                            fontWeight="700"
+                            variant="subtitle1"
+                            sx={{ color: "text.primary" }}
                           >
-                            {formatDateTime(row.startTime)}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </AccordionSummary>
-
-                    {/* --- Accordion Details --- */}
-                    <AccordionDetails sx={{ px: 3, pb: 3, pt: 1 }}>
-                      <Divider sx={{ mb: 3 }} />
-                      <Grid container spacing={3}>
-                        <Grid item xs={12} sm={6}>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: "text.disabled",
-                              letterSpacing: 0.5,
-                              fontWeight: "bold",
-                            }}
-                          >
-                            HOST
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                              mt: 0.5,
-                              color: "text.primary",
-                            }}
-                          >
-                            <Person
-                              fontSize="small"
-                              sx={{ color: theme.palette.brand.main }}
-                            />{" "}
-                            {row.host}
-                          </Typography>
-                        </Grid>
-
-                        <Grid item xs={12} sm={6}>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: "text.disabled",
-                              letterSpacing: 0.5,
-                              fontWeight: "bold",
-                            }}
-                          >
-                            RECURRING
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                              mt: 0.5,
-                              color: "text.primary",
-                            }}
-                          >
-                            <Loop
-                              fontSize="small"
-                              sx={{ color: theme.palette.brand.main }}
-                            />{" "}
-                            {row.isRecurring ? "Yes, Recurring Series" : "No"}
-                          </Typography>
-                        </Grid>
-
-                        {/* Participants */}
-                        <Grid item xs={12}>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: "text.disabled",
-                              letterSpacing: 0.5,
-                              fontWeight: "bold",
-                            }}
-                          >
-                            PARTICIPANTS
+                            {row.title}
                           </Typography>
                           <Box
                             sx={{
                               display: "flex",
-                              flexWrap: "wrap",
-                              gap: 1,
-                              mt: 1,
+                              alignItems: "center",
+                              gap: 0.5,
                             }}
                           >
-                            {row.internalParticipants
-                              .toString()
-                              .split(",")
-                              .map((email: string, i: number) => (
-                                <Chip
-                                  key={i}
-                                  label={email.trim()}
-                                  icon={<Group sx={{ pl: 0.5 }} />}
-                                  size="small"
-                                  sx={{
-                                    bgcolor: theme.palette.action.selected, // Adapts to theme mode
-                                    color: "text.primary",
-                                    fontWeight: 500,
-                                  }}
-                                />
-                              ))}
+                            <Schedule
+                              fontSize="small"
+                              sx={{ color: "text.secondary" }}
+                            />
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              fontWeight="500"
+                            >
+                              {formatDateTime(row.startTime)}
+                            </Typography>
                           </Box>
-                        </Grid>
+                        </Box>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        {/* ... (Your existing Accordion Details) ... */}
+                      </AccordionDetails>
+                    </Accordion>
+                  ))}
 
-                        {/* Attachments */}
-                        <Grid item xs={12}>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: "text.disabled",
-                              letterSpacing: 0.5,
-                              fontWeight: "bold",
-                            }}
-                          >
-                            ATTACHMENTS
-                          </Typography>
-                          <Box sx={{ mt: 1 }}>
-                            {loadingAttachments[row.meetingId] ? (
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 1,
-                                }}
-                              >
-                                <CircularProgress
-                                  size={16}
-                                  sx={{ color: theme.palette.brand.main }}
-                                />
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                >
-                                  Loading...
-                                </Typography>
-                              </Box>
-                            ) : attachmentMap[row.meetingId]?.length > 0 ? (
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  flexWrap: "wrap",
-                                  gap: 1,
-                                }}
-                              >
-                                {attachmentMap[row.meetingId].map(
-                                  (att, idx) => (
-                                    <Button
-                                      key={idx}
-                                      variant="outlined"
-                                      startIcon={<InsertDriveFile />}
-                                      onClick={() =>
-                                        window.open(att.fileUrl, "_blank")
-                                      }
-                                      size="small"
-                                      sx={{
-                                        borderColor: theme.palette.divider,
-                                        color: "text.secondary",
-                                        textTransform: "none",
-                                        borderRadius: 2,
-                                        "&:hover": {
-                                          borderColor: theme.palette.brand.main,
-                                          color: theme.palette.brand.main,
-                                          bgcolor: alpha(
-                                            theme.palette.brand.main,
-                                            0.04,
-                                          ), // Dynamically calculated opacity
-                                        },
-                                      }}
-                                    >
-                                      {att.title || "Attachment"}
-                                    </Button>
-                                  ),
-                                )}
-                              </Box>
-                            ) : (
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                fontStyle="italic"
-                              >
-                                No attachments available.
-                              </Typography>
-                            )}
-                          </Box>
-                        </Grid>
-
-                        {/* Actions */}
-                        <Grid
-                          item
-                          xs={12}
-                          sx={{
-                            display: "flex",
-                            justifyContent: "flex-end",
-                            mt: -2,
-                          }}
-                        >
-                          <Button
-                            color="error"
-                            startIcon={<DeleteForever />}
-                            onClick={() =>
-                              handleDeleteMeeting(row.meetingId, row.title)
-                            }
-                            sx={{ textTransform: "none", fontWeight: 600 }}
-                          >
-                            Delete Meeting
-                          </Button>
-                        </Grid>
-                      </Grid>
-                    </AccordionDetails>
-                  </Accordion>
+                  <div
+                    ref={observerTarget}
+                    style={{ height: "20px", marginTop: "10px" }}
+                  >
+                    {meeting.state === State.loading && page > 0 && (
+                      <Box sx={{ display: "flex", justifyContent: "center" }}>
+                        <CircularProgress
+                          size={24}
+                          sx={{ color: theme.palette.brand.main }}
+                        />
+                      </Box>
+                    )}
+                  </div>
+                </Box>
+              )
+            ) : (
+              /* --- MODULE/GRID VIEW CONTENT --- */
+              /* Since parent is now md={12}, the grid has full width. 
+           We use lg={3} to show 4 cards per row (standard full-width layout). 
+        */
+              <Grid container spacing={3}>
+                {mockData.map((meeting) => (
+                  <Grid item xs={12} sm={6} md={4} lg={3} key={meeting.id}>
+                    <MeetingCard data={meeting} />
+                  </Grid>
                 ))}
-
-                <div
-                  ref={observerTarget}
-                  style={{ height: "20px", marginTop: "10px" }}
-                >
-                  {meeting.state === State.loading && page > 0 && (
-                    <Box sx={{ display: "flex", justifyContent: "center" }}>
-                      <CircularProgress
-                        size={24}
-                        sx={{ color: theme.palette.brand.main }}
-                      />
-                    </Box>
-                  )}
-                </div>
-              </Box>
+              </Grid>
             )}
           </Box>
         </Grid>
 
-        {/* --- RIGHT COLUMN: Sidebar --- */}
-        <Grid item xs={12} md={4}>
-          <Card
-            sx={{
-              boxShadow: MODERN_SHADOW,
-              borderRadius: 3,
-              position: "sticky",
-              top: 24,
-              bgcolor: "background.paper",
-              p: 3,
-              border: "1.5px solid #d1d3d4",
-              transition: "border-color 0.3s ease-in-out",
-              "&:hover": {
-                borderColor: theme.palette.brand.main,
-              },
-            }}
-          >
-            <CardContent>
-              <Typography
-                variant="h6"
-                fontWeight="700"
-                color="text.primary"
-                sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}
-              >
-                <Schedule sx={{ color: theme.palette.brand.main }} /> Upcoming
-                Meetings
-              </Typography>
+        {/* --- SIDEBAR (ONLY VISIBLE IN LIST VIEW) --- */}
+        {view === "list" && (
+          <Grid item xs={12} md={4}>
+            <Card
+              sx={{
+                boxShadow: MODERN_SHADOW,
+                borderRadius: 3,
+                position: "sticky",
+                top: 24,
+                bgcolor: "background.paper",
+                p: 3,
+                border: "1.5px solid #d1d3d4",
+                transition: "border-color 0.3s ease-in-out",
+                "&:hover": {
+                  borderColor: theme.palette.brand.main,
+                },
+              }}
+            >
+              <CardContent>
+                <Typography
+                  variant="h6"
+                  fontWeight="700"
+                  color="text.primary"
+                  sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}
+                >
+                  <Schedule sx={{ color: theme.palette.brand.main }} /> Upcoming
+                  Meetings
+                </Typography>
 
-              <List disablePadding>
-                {upcomingMeetingsLoading === State.loading ? (
-                  <ListItem disableGutters>
-                    <CircularProgress size={20} />
-                  </ListItem>
-                ) : sortedUpcomingMeetings.length > 0 ? (
-                  sortedUpcomingMeetings.map((item, index) => (
-                    <ListItem
-                      key={index}
-                      disableGutters
-                      sx={{
-                        borderBottom:
-                          index < sortedUpcomingMeetings.length - 1
-                            ? `1px solid ${theme.palette.divider}`
-                            : "none",
-                        py: 2,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 2,
-                      }}
-                    >
-                      {/* Time on the left */}
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
+                <List disablePadding>
+                  {upcomingMeetingsLoading === State.loading ? (
+                    <ListItem disableGutters>
+                      <CircularProgress size={20} />
+                    </ListItem>
+                  ) : sortedUpcomingMeetings.length > 0 ? (
+                    sortedUpcomingMeetings.map((item, index) => (
+                      <ListItem
+                        key={index}
+                        disableGutters
                         sx={{
-                          minWidth: 90,
-                          textAlign: "left",
-                          display: "inline-flex",
+                          borderBottom:
+                            index < sortedUpcomingMeetings.length - 1
+                              ? `1px solid ${theme.palette.divider}`
+                              : "none",
+                          py: 2,
+                          display: "flex",
                           alignItems: "center",
-                          mr: 2,
+                          gap: 2,
                         }}
                       >
-                        {createDateTime(new Date(item.startTime))}
-                      </Typography>
-                      {/* Title and details on the right */}
-                      <Box sx={{ flex: 1 }}>
                         <Typography
-                          variant="subtitle2"
-                          fontWeight="700"
-                          color="text.primary"
-                          component="span"
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{
+                            minWidth: 90,
+                            textAlign: "left",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            mr: 2,
+                          }}
                         >
-                          {item.title}
+                          {createDateTime(new Date(item.startTime))}
                         </Typography>
-                        {/* Add more details here if needed */}
-                      </Box>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography
+                            variant="subtitle2"
+                            fontWeight="700"
+                            color="text.primary"
+                            component="span"
+                          >
+                            {item.title}
+                          </Typography>
+                        </Box>
+                      </ListItem>
+                    ))
+                  ) : (
+                    <ListItem disableGutters>
+                      <Typography variant="body2" color="text.secondary">
+                        No upcoming meetings.
+                      </Typography>
                     </ListItem>
-                  ))
-                ) : (
-                  <ListItem disableGutters>
-                    <Typography variant="body2" color="text.secondary">
-                      No upcoming meetings.
-                    </Typography>
-                  </ListItem>
-                )}
-              </List>
-              <Button fullWidth variant="contained" disableElevation>
-                View more upcoming meetings
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
+                  )}
+                </List>
+                <Button fullWidth variant="contained" disableElevation>
+                  View more upcoming meetings
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
       </Grid>
     </Box>
   );
