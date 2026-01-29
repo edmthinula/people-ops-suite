@@ -557,7 +557,7 @@ function MeetingHistory() {
                         },
                       }}
                     >
-                      {/* ... (Accordion Content Omitted for brevity, paste your existing code here) ... */}
+                      {/* --- Accordion Header --- */}
                       <AccordionSummary
                         expandIcon={
                           <ExpandMore
@@ -603,8 +603,215 @@ function MeetingHistory() {
                           </Box>
                         </Box>
                       </AccordionSummary>
-                      <AccordionDetails>
-                        {/* ... (Your existing Accordion Details) ... */}
+
+                      {/* --- RESTORED ACCORDION DETAILS --- */}
+                      <AccordionDetails sx={{ px: 3, pb: 3, pt: 1 }}>
+                        <Divider sx={{ mb: 3 }} />
+                        <Grid container spacing={3}>
+                          {/* Host Info */}
+                          <Grid item xs={12} sm={6}>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: "text.disabled",
+                                letterSpacing: 0.5,
+                                fontWeight: "bold",
+                              }}
+                            >
+                              HOST
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                                mt: 0.5,
+                                color: "text.primary",
+                              }}
+                            >
+                              <Person
+                                fontSize="small"
+                                sx={{ color: theme.palette.brand.main }}
+                              />{" "}
+                              {row.host}
+                            </Typography>
+                          </Grid>
+
+                          {/* Recurring Info */}
+                          <Grid item xs={12} sm={6}>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: "text.disabled",
+                                letterSpacing: 0.5,
+                                fontWeight: "bold",
+                              }}
+                            >
+                              RECURRING
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                                mt: 0.5,
+                                color: "text.primary",
+                              }}
+                            >
+                              <Loop
+                                fontSize="small"
+                                sx={{ color: theme.palette.brand.main }}
+                              />{" "}
+                              {row.isRecurring ? "Yes, Recurring Series" : "No"}
+                            </Typography>
+                          </Grid>
+
+                          {/* Participants */}
+                          <Grid item xs={12}>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: "text.disabled",
+                                letterSpacing: 0.5,
+                                fontWeight: "bold",
+                              }}
+                            >
+                              PARTICIPANTS
+                            </Typography>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: 1,
+                                mt: 1,
+                              }}
+                            >
+                              {row.internalParticipants
+                                .toString()
+                                .split(",")
+                                .map((email: string, i: number) => (
+                                  <Chip
+                                    key={i}
+                                    label={email.trim()}
+                                    icon={<Group sx={{ pl: 0.5 }} />}
+                                    size="small"
+                                    sx={{
+                                      bgcolor: theme.palette.action.selected,
+                                      color: "text.primary",
+                                      fontWeight: 500,
+                                    }}
+                                  />
+                                ))}
+                            </Box>
+                          </Grid>
+
+                          {/* Attachments */}
+                          <Grid item xs={12}>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: "text.disabled",
+                                letterSpacing: 0.5,
+                                fontWeight: "bold",
+                              }}
+                            >
+                              ATTACHMENTS
+                            </Typography>
+                            <Box sx={{ mt: 1 }}>
+                              {loadingAttachments[row.meetingId] ? (
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 1,
+                                  }}
+                                >
+                                  <CircularProgress
+                                    size={16}
+                                    sx={{ color: theme.palette.brand.main }}
+                                  />
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                  >
+                                    Loading...
+                                  </Typography>
+                                </Box>
+                              ) : attachmentMap[row.meetingId]?.length > 0 ? (
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    flexWrap: "wrap",
+                                    gap: 1,
+                                  }}
+                                >
+                                  {attachmentMap[row.meetingId].map(
+                                    (att, idx) => (
+                                      <Button
+                                        key={idx}
+                                        variant="outlined"
+                                        startIcon={<InsertDriveFile />}
+                                        onClick={() =>
+                                          window.open(att.fileUrl, "_blank")
+                                        }
+                                        size="small"
+                                        sx={{
+                                          borderColor: theme.palette.divider,
+                                          color: "text.secondary",
+                                          textTransform: "none",
+                                          borderRadius: 2,
+                                          "&:hover": {
+                                            borderColor:
+                                              theme.palette.brand.main,
+                                            color: theme.palette.brand.main,
+                                            bgcolor: alpha(
+                                              theme.palette.brand.main,
+                                              0.04,
+                                            ),
+                                          },
+                                        }}
+                                      >
+                                        {att.title || "Attachment"}
+                                      </Button>
+                                    ),
+                                  )}
+                                </Box>
+                              ) : (
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                  fontStyle="italic"
+                                >
+                                  No attachments available.
+                                </Typography>
+                              )}
+                            </Box>
+                          </Grid>
+
+                          {/* Actions */}
+                          <Grid
+                            item
+                            xs={12}
+                            sx={{
+                              display: "flex",
+                              justifyContent: "flex-end",
+                              mt: -2,
+                            }}
+                          >
+                            <Button
+                              color="error"
+                              startIcon={<DeleteForever />}
+                              onClick={() =>
+                                handleDeleteMeeting(row.meetingId, row.title)
+                              }
+                              sx={{ textTransform: "none", fontWeight: 600 }}
+                            >
+                              Delete Meeting
+                            </Button>
+                          </Grid>
+                        </Grid>
                       </AccordionDetails>
                     </Accordion>
                   ))}
