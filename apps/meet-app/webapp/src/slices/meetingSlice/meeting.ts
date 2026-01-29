@@ -194,7 +194,6 @@ export const fetchMeetings = createAsyncThunk(
           resolve(response.data);
         })
         .catch((error) => {
-          console.log(error);
           const errorMessage =
             error.response?.data?.message ||
             (error.response?.status === HttpStatusCode.InternalServerError

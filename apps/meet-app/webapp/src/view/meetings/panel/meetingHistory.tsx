@@ -30,7 +30,6 @@ import {
   Divider,
   List,
   ListItem,
-  ListItemText,
   Paper,
   InputAdornment,
   CardActions,
@@ -148,30 +147,20 @@ function MeetingHistory() {
     Record<number, boolean>
   >({});
 
-  // Fetch Meetings (Initial Load & Search)
   useEffect(() => {
     setPage(0);
-
-    // 1. Start the Main List Fetch
     const mainFetchPromise = dispatch(
       fetchMeetings({ title: debouncedSearchTerm, limit: pageSize, offset: 0 }),
     );
-
-    // 2. Chain the Second Call using .then()
-    mainFetchPromise
-      .unwrap() // This ensures we only proceed if the first call SUCCEEDED
-      .then(() => {
-        // logic to fetch upcoming meetings
-        if (!hasFetchedUpcoming.current) {
-          refreshUpcomingMeetings();
-        }
-      });
-
-    // Cleanup: If the component unmounts, abort the request
+    mainFetchPromise.unwrap().then(() => {
+      if (hasFetchedUpcoming.current) {
+        refreshUpcomingMeetings();
+      }
+    });
     return () => {
       mainFetchPromise.abort();
     };
-  }, [dispatch, debouncedSearchTerm, pageSize]);
+  }, [dispatch, debouncedSearchTerm]);
 
   useEffect(() => {
     if (page > 0) {
@@ -183,7 +172,7 @@ function MeetingHistory() {
         }),
       );
     }
-  }, [page, dispatch, debouncedSearchTerm, pageSize]);
+  }, [page, dispatch]);
   useEffect(() => {
     if (
       !customers.length &&
@@ -193,7 +182,6 @@ function MeetingHistory() {
     }
   }, [dispatch, customers.length]);
 
-  // Infinite Scroll Observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -214,7 +202,6 @@ function MeetingHistory() {
     };
   }, [meeting.state, meeting.meetings]);
 
-  // --- Handlers ---
   const handleAccordionChange = (meetingId: number, isExpanded: boolean) => {
     if (isExpanded && !attachmentMap[meetingId]) {
       setLoadingAttachments((prev) => ({ ...prev, [meetingId]: true }));
