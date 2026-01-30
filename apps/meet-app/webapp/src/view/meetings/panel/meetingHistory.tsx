@@ -68,7 +68,7 @@ import { useTheme, alpha } from "@mui/material/styles";
 
 // Icons
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import AccessTimeIcon from "@mui/icons-material/AccessTime"; // For the clock icon in 3rd card
+import AccessTimeIcon from "@mui/icons-material/AccessTime"; 
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import PersonIcon from "@mui/icons-material/Person";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -134,7 +134,7 @@ function MeetingHistory() {
   const dialogContext = useConfirmationModalContext();
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const hasFetchedUpcoming = useRef(false);
+  const [hasFetchedUpcoming,setHasFetchedUpcoming] = useState(false);
   const [view, setView] = useState("list");
 
   const debouncedSearchTerm = useDebounce(searchQuery, 500);
@@ -153,7 +153,8 @@ function MeetingHistory() {
       fetchMeetings({ title: debouncedSearchTerm, limit: pageSize, offset: 0 }),
     );
     mainFetchPromise.unwrap().then(() => {
-      if (hasFetchedUpcoming.current) {
+      if (!hasFetchedUpcoming && upcomingMeetingsLoading != State.success) {
+        setHasFetchedUpcoming(true)
         refreshUpcomingMeetings();
       }
     });
@@ -317,14 +318,12 @@ function MeetingHistory() {
     event: React.MouseEvent<HTMLElement>,
     nextView: string | null,
   ) => {
-    console.log(nextView);
     if (nextView != null) {
       setView(nextView);
     }
   };
 
   const mockData: MeetingData[] = [
-
   ];
   const MeetingCard = ({ data }: { data: MeetingData }) => {
     return (
@@ -412,11 +411,10 @@ function MeetingHistory() {
       sx={{
         p: { xs: 2, md: 4 },
         margin: "0 auto",
-        bgcolor: "background.default", // Responsive background
+        bgcolor: "background.default", 
         minHeight: "100vh",
       }}
     >
-      {/* --- Page Header Section --- */}
       <Box
         sx={{
           display: "flex",
@@ -446,8 +444,6 @@ function MeetingHistory() {
             </Typography>
           </Box>
         </Box>
-
-        {/* Right: Search bar and toggle buttons */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
           <TextField
             placeholder="Search meetings..."
@@ -493,13 +489,9 @@ function MeetingHistory() {
       </Box>
 
       <Grid container spacing={4}>
-        {/* --- MAIN COLUMN (Dynamic Width) --- */}
-        {/* Logic: If view is 'list', use md=8 to make room for sidebar. 
-      If view is 'module', use md=12 to fill the full screen. */}
         <Grid item xs={12} md={view === "list" ? 8 : 12}>
           <Box sx={{ p: 2, minHeight: 500 }}>
             {view === "list" ? (
-              /* --- LIST VIEW CONTENT --- */
               meeting.state === State.loading && page === 0 ? (
                 <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
                   <CircularProgress sx={{ color: theme.palette.brand.main }} />
@@ -544,7 +536,6 @@ function MeetingHistory() {
                         },
                       }}
                     >
-                      {/* --- Accordion Header --- */}
                       <AccordionSummary
                         expandIcon={
                           <ExpandMore
@@ -591,11 +582,9 @@ function MeetingHistory() {
                         </Box>
                       </AccordionSummary>
 
-                      {/* --- RESTORED ACCORDION DETAILS --- */}
                       <AccordionDetails sx={{ px: 3, pb: 3, pt: 1 }}>
                         <Divider sx={{ mb: 3 }} />
                         <Grid container spacing={3}>
-                          {/* Host Info */}
                           <Grid item xs={12} sm={6}>
                             <Typography
                               variant="caption"
@@ -625,7 +614,6 @@ function MeetingHistory() {
                             </Typography>
                           </Grid>
 
-                          {/* Recurring Info */}
                           <Grid item xs={12} sm={6}>
                             <Typography
                               variant="caption"
@@ -654,8 +642,6 @@ function MeetingHistory() {
                               {row.isRecurring ? "Yes, Recurring Series" : "No"}
                             </Typography>
                           </Grid>
-
-                          {/* Participants */}
                           <Grid item xs={12}>
                             <Typography
                               variant="caption"
@@ -693,8 +679,6 @@ function MeetingHistory() {
                                 ))}
                             </Box>
                           </Grid>
-
-                          {/* Attachments */}
                           <Grid item xs={12}>
                             <Typography
                               variant="caption"
@@ -819,10 +803,6 @@ function MeetingHistory() {
                 </Box>
               )
             ) : (
-              /* --- MODULE/GRID VIEW CONTENT --- */
-              /* Since parent is now md={12}, the grid has full width. 
-           We use lg={3} to show 4 cards per row (standard full-width layout). 
-        */
               <Grid container spacing={3}>
                 {mockData.map((meeting) => (
                   <Grid item xs={12} sm={6} md={4} lg={3} key={meeting.id}>
@@ -834,7 +814,6 @@ function MeetingHistory() {
           </Box>
         </Grid>
 
-        {/* --- SIDEBAR (ONLY VISIBLE IN LIST VIEW) --- */}
         {view === "list" && (
           <Grid item xs={12} md={4}>
             <Card
