@@ -35,6 +35,7 @@ import {
   CardActions,
   IconButton,
   Stack,
+  Tooltip,
 } from "@mui/material";
 import { State } from "@/types/types";
 import useDebounce from "@utils/useDebounce";
@@ -68,7 +69,7 @@ import { useTheme, alpha } from "@mui/material/styles";
 
 // Icons
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import AccessTimeIcon from "@mui/icons-material/AccessTime"; 
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import PersonIcon from "@mui/icons-material/Person";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -90,7 +91,6 @@ interface MeetingData {
   email: string;
   status: "completed" | "pending"; // To switch between Green Check and Grey Clock
 }
-// Utility to format date nicely
 const formatDateTime = (dateTimeStr: string) => {
   const utcDate = new Date(dateTimeStr + " UTC");
   return utcDate.toLocaleString("en-GB", {
@@ -115,7 +115,6 @@ function MeetingHistory() {
   const customers = useAppSelector((state) => state.customer.customers) || [];
   const customersState = useAppSelector((state) => state.customer.state);
 
-  // Dynamic Shadows based on Theme Mode
   const MODERN_SHADOW =
     theme.palette.mode === "dark"
       ? "0 4px 20px 0 rgba(0,0,0,0.5)"
@@ -125,21 +124,15 @@ function MeetingHistory() {
       ? "0 8px 30px 0 rgba(0,0,0,0.6)"
       : "0 8px 30px 0 rgba(0,0,0,0.1)";
 
-  // Infinite Scroll State
   const [page, setPage] = useState(0);
   const pageSize = 10;
   const observerTarget = useRef(null);
-
-  // Local State
   const dialogContext = useConfirmationModalContext();
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [hasFetchedUpcoming,setHasFetchedUpcoming] = useState(false);
+  const [hasFetchedUpcoming, setHasFetchedUpcoming] = useState(false);
   const [view, setView] = useState("list");
-
   const debouncedSearchTerm = useDebounce(searchQuery, 500);
-
-  // Attachment Caching (Map meetingId -> Attachment[])
   const [attachmentMap, setAttachmentMap] = useState<
     Record<number, Attachment[]>
   >({});
@@ -154,7 +147,7 @@ function MeetingHistory() {
     );
     mainFetchPromise.unwrap().then(() => {
       if (!hasFetchedUpcoming && upcomingMeetingsLoading != State.success) {
-        setHasFetchedUpcoming(true)
+        setHasFetchedUpcoming(true);
         refreshUpcomingMeetings();
       }
     });
@@ -222,13 +215,11 @@ function MeetingHistory() {
     const today = new Date();
     const twoDaysLater = new Date();
     twoDaysLater.setDate(today.getDate() + 2);
-
-    // Return the dispatch promise in case we need to chain it later
     return dispatch(
       fetchMeetingsByDates({
         startDate: today.toISOString(),
         endDate: twoDaysLater.toISOString(),
-        limit: 5,
+        limit: 10,
       }),
     );
   };
@@ -269,22 +260,23 @@ function MeetingHistory() {
       "No",
     );
   };
-  // Section related to upcoming sidebar
 
+  // Section related to upcoming sidebar
   const sortedUpcomingMeetings = useMemo(() => {
     if (!upcomingMeetings) return [];
-    return [...upcomingMeetings].sort(
-      (a, b) =>
-        new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
-    );
+    return upcomingMeetings
+      .filter((meeting) => meeting.meetingStatus === "ACTIVE")
+      .sort(
+        (a, b) =>
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+      )
+      .slice(0, 5);
   }, [upcomingMeetings]);
 
   const createDateTime = (date: Date) => {
     const now = new Date();
     const tomorrow = new Date(now);
     tomorrow.setDate(now.getDate() + 1);
-
-    // Get date parts for comparison
     const isToday =
       date.getFullYear() === now.getFullYear() &&
       date.getMonth() === now.getMonth() &&
@@ -305,7 +297,6 @@ function MeetingHistory() {
     } else if (isTomorrow) {
       return `Tomorrow, ${timeStr}`;
     } else {
-      // Example: Jan 26, 09:00 AM
       const dateStr = date.toLocaleString("en-GB", {
         month: "short",
         day: "2-digit",
@@ -323,8 +314,7 @@ function MeetingHistory() {
     }
   };
 
-  const mockData: MeetingData[] = [
-  ];
+  const mockData: MeetingData[] = [];
   const MeetingCard = ({ data }: { data: MeetingData }) => {
     return (
       <Card
@@ -338,7 +328,6 @@ function MeetingHistory() {
         }}
       >
         <CardContent sx={{ flexGrow: 1 }}>
-          {/* Header: Title + Status Icon */}
           <Box
             display="flex"
             justifyContent="space-between"
@@ -352,18 +341,13 @@ function MeetingHistory() {
             >
               {data.title}
             </Typography>
-
-            {/* Conditional Status Icon */}
             {data.status === "completed" ? (
               <CheckCircleIcon color="success" />
             ) : (
               <AccessTimeIcon sx={{ color: "text.disabled" }} />
             )}
           </Box>
-
-          {/* Body: Date & Email */}
           <Stack spacing={1.5}>
-            {/* Date Row */}
             <Box
               display="flex"
               alignItems="center"
@@ -375,8 +359,6 @@ function MeetingHistory() {
                 {data.date}, {data.time}
               </Typography>
             </Box>
-
-            {/* Email Row */}
             <Box
               display="flex"
               alignItems="center"
@@ -388,10 +370,7 @@ function MeetingHistory() {
             </Box>
           </Stack>
         </CardContent>
-
         <Divider />
-
-        {/* Footer: Action Buttons */}
         <CardActions sx={{ justifyContent: "flex-end", px: 2, py: 1 }}>
           <IconButton size="small" color="primary" aria-label="view">
             <VisibilityIcon />
@@ -411,7 +390,7 @@ function MeetingHistory() {
       sx={{
         p: { xs: 2, md: 4 },
         margin: "0 auto",
-        bgcolor: "background.default", 
+        bgcolor: "background.default",
         minHeight: "100vh",
       }}
     >
@@ -490,7 +469,7 @@ function MeetingHistory() {
 
       <Grid container spacing={4}>
         <Grid item xs={12} md={view === "list" ? 8 : 12}>
-          <Box sx={{ p: 2, minHeight: 500 }}>
+          <Box sx={{ minHeight: 500 }}>
             {view === "list" ? (
               meeting.state === State.loading && page === 0 ? (
                 <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
@@ -553,13 +532,30 @@ function MeetingHistory() {
                             pr: 2,
                           }}
                         >
-                          <Typography
-                            fontWeight="700"
-                            variant="subtitle1"
-                            sx={{ color: "text.primary" }}
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1.5,
+                            }}
                           >
-                            {row.title}
-                          </Typography>
+                            {row.meetingStatus === "ACTIVE" ? (
+                              <Tooltip title="ACTIVE">
+                                <CheckCircleIcon color="success" />
+                              </Tooltip>
+                            ) : row.meetingStatus === "CANCELLED" ? (
+                              <Tooltip title="CANCELLED">
+                                <DeleteIcon color="disabled" />
+                              </Tooltip>
+                            ) : null}
+                            <Typography
+                              fontWeight="700"
+                              variant="subtitle1"
+                              sx={{ color: "text.primary" }}
+                            >
+                              {row.title}
+                            </Typography>
+                          </Box>
                           <Box
                             sx={{
                               display: "flex",
@@ -774,6 +770,7 @@ function MeetingHistory() {
                             <Button
                               color="error"
                               startIcon={<DeleteForever />}
+                              disabled={row.meetingStatus === "CANCELLED"}
                               onClick={() =>
                                 handleDeleteMeeting(row.meetingId, row.title)
                               }
@@ -822,8 +819,8 @@ function MeetingHistory() {
                 borderRadius: 3,
                 position: "sticky",
                 top: 24,
+                p: 2,
                 bgcolor: "background.paper",
-                p: 3,
                 border: "1.5px solid #d1d3d4",
                 transition: "border-color 0.3s ease-in-out",
                 "&:hover": {
@@ -831,7 +828,7 @@ function MeetingHistory() {
                 },
               }}
             >
-              <CardContent>
+              <CardContent sx={{ "&:last-child": { pb: 0 } }}>
                 <Typography
                   variant="h6"
                   fontWeight="700"
@@ -841,7 +838,6 @@ function MeetingHistory() {
                   <Schedule sx={{ color: theme.palette.brand.main }} /> Upcoming
                   Meetings
                 </Typography>
-
                 <List disablePadding>
                   {upcomingMeetingsLoading === State.loading ? (
                     <ListItem disableGutters>
@@ -896,9 +892,9 @@ function MeetingHistory() {
                     </ListItem>
                   )}
                 </List>
-                <Button fullWidth variant="contained" disableElevation>
+                {/* <Button fullWidth variant="contained" disableElevation>
                   View more upcoming meetings
-                </Button>
+                </Button> */}
               </CardContent>
             </Card>
           </Grid>
