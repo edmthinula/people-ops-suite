@@ -104,3 +104,14 @@ public isolated function cancelMeeting(int meetingId) returns int|error {
     }
     return meetingId;
 }
+
+# Fetch meetings per customer as meetings summary.
+#
+# + return - MeetingSummary[] | error
+public isolated function fetchMeetingsSummary() returns MeetingSummary[]|error {
+    stream<MeetingSummary, error?> resultStream = databaseClient->query(
+        getMeetingsSummaryQuery()
+    );
+    return from MeetingSummary meetingSummary in resultStream
+        select meetingSummary;
+}

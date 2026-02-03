@@ -38,7 +38,7 @@ public type Meeting record {|
     # Time Status (e.g., 'PAST', 'UPCOMING')
     database:TimeStatus timeStatus;
     # Whether the meeting is recurring
-    boolean isRecurring;  
+    boolean isRecurring;
 |};
 
 # Represents the response structure for retrieving user information.
@@ -99,4 +99,10 @@ public type SupportTeamEmail record {|
 public type AppConfig record {|
     # List of support team emails
     SupportTeamEmail[] supportTeamEmails;
+|};
+
+# Represents the response when retrieving customers meetings summary.
+public type MeetingsSummaryResponse record {|
+    #list of meetings summary
+    database:MeetingSummary[] meetingsSummary;
 |};

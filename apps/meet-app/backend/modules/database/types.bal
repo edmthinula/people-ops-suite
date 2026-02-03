@@ -97,6 +97,13 @@ public type RawMeetingTypes record {|
     # Meeting Types
     string types;
 |};
+# [Database]MeetingSummaryTypes type.
+public type MeetingSummary record {|
+    # Customer name
+    string customerName;
+    # Meeting count
+    int meetingCount;
+|};
 
 # [Database]MeetingTypes type.
 public type MeetingTypes record {|

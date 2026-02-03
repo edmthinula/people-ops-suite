@@ -208,3 +208,17 @@ isolated function cancelMeetingStatusQuery(int meetingId) returns sql:Parameteri
     WHERE 
         meeting_id = ${meetingId};
 `;
+
+# Build query to retrieve the meetings per customer as meeting summary.
+#
+# + return - sql:ParameterizedQuery - Select query for the meeting table
+isolated function getMeetingsSummaryQuery() returns sql:ParameterizedQuery =>
+`
+    SELECT 
+        customer_name AS customerName,    
+        COUNT(meeting_id) AS meetingCount   
+    FROM meeting
+    WHERE customer_name IS NOT NULL
+    GROUP BY customer_name
+    ORDER BY customer_name ASC;
+`;

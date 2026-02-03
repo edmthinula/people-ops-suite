@@ -536,6 +536,41 @@ service http:InterceptableService / on new http:Listener(9090) {
         };
     }
 
+        # Get customers meetings summary
+    #
+    # + return - MeetingsSummaryResponse | Error
+    resource function get customers/meetings/summary(http:RequestContext ctx) returns MeetingsSummaryResponse|http:Forbidden|http:InternalServerError {
+        authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
+        if userInfo is error {
+            return <http:InternalServerError>{
+                body: {
+                    message: "User information header not found!"
+                }
+            };
+        }
+        // Return Forbidden if a non-admin user provides a host query parameter.
+        if (authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups)) {
+            return <http:Forbidden>{
+                body: {message: "Insufficient privileges to filter by host!"}
+            };
+        }
+        // Fetch the meetings summary from the database.
+        database:MeetingSummary[]|error meetingsSummary = database:fetchMeetingsSummary();
+        if meetingsSummary is error {
+            string customError = string `Error occurred while retrieving the meetings summary`;
+            log:printError(customError, meetingsSummary);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
+        }
+        log:printInfo(meetingsSummary.toBalString());
+        return {
+            meetingsSummary: meetingsSummary
+        };
+    }
+
     # Get attachments of a meeting.
     #
     # + meetingId - meetingId to get attachments 
