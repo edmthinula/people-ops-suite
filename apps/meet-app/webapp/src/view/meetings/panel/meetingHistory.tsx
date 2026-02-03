@@ -36,6 +36,7 @@ import {
   IconButton,
   Stack,
   Tooltip,
+  CardActionArea,
 } from "@mui/material";
 import { State } from "@/types/types";
 import useDebounce from "@utils/useDebounce";
@@ -66,15 +67,11 @@ import {
   fetchMeetingsByDates,
 } from "@slices/meetingSlice/meeting";
 import { useTheme, alpha } from "@mui/material/styles";
-
-// Icons
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import PersonIcon from "@mui/icons-material/Person";
-import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { fetchCustomers } from "@root/src/slices/customerSlice/customer";
+
+import EventNoteIcon from "@mui/icons-material/EventNote";
 
 interface Attachment {
   title: string;
@@ -83,13 +80,10 @@ interface Attachment {
   iconLink: string;
   mimeType: string;
 }
-interface MeetingData {
+interface CustomerMeetingSummary {
   id: number;
-  title: string;
-  date: string;
-  time: string;
-  email: string;
-  status: "completed" | "pending"; // To switch between Green Check and Grey Clock
+  customerName: string;
+  meetingCount: number;
 }
 const formatDateTime = (dateTimeStr: string) => {
   const utcDate = new Date(dateTimeStr + " UTC");
@@ -314,74 +308,88 @@ function MeetingHistory() {
     }
   };
 
-  const mockData: MeetingData[] = [];
-  const MeetingCard = ({ data }: { data: MeetingData }) => {
-    return (
-      <Card
-        variant="outlined"
-        sx={{
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          borderRadius: 2,
-          boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-        }}
+
+const mockCustomerData: CustomerMeetingSummary[] = [
+
+];
+  const CustomerCard = ({ data }: { data: CustomerMeetingSummary }) => {
+  
+  const handleCardClick = (id: number) => {
+    console.log(`Maps to /customer/${id}`);
+  };
+
+  return (
+    <Card
+      variant="outlined"
+      sx={{
+        height: "100%",
+        borderRadius: 2,
+        boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+        transition: "transform 0.2s, box-shadow 0.2s, border-color 0.2s",
+        "&:hover": {
+          transform: "translateY(-2px)",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+          borderColor: "primary.main", 
+        },
+      }}
+    >
+      <CardActionArea 
+        onClick={() => handleCardClick(data.id)} 
+        sx={{ height: "100%", display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}
       >
-        <CardContent sx={{ flexGrow: 1 }}>
+        <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
+          <Box>
+            <Typography variant="overline" color="text.secondary" fontWeight="bold">
+              Customer
+            </Typography>
+            <Typography
+              variant="h6"
+              component="div"
+              fontWeight="bold"
+              sx={{ 
+                lineHeight: 1.3,
+                display: '-webkit-box',
+                overflow: 'hidden',
+                WebkitBoxOrient: 'vertical',
+                WebkitLineClamp: 2,
+              }}
+            >
+              {data.customerName}
+            </Typography>
+          </Box>
+
+          <Box sx={{ flexGrow: 1 }} />
           <Box
             display="flex"
+            alignItems="center"
             justifyContent="space-between"
-            alignItems="flex-start"
-            mb={2}
+            bgcolor="grey.50" 
+            p={2}
+            borderRadius={2}
+            border="1px solid"
+            borderColor="divider"
           >
-            <Typography
-              variant="subtitle1"
-              fontWeight="bold"
-              sx={{ lineHeight: 1.3, mr: 1 }}
-            >
-              {data.title}
-            </Typography>
-            {data.status === "completed" ? (
-              <CheckCircleIcon color="success" />
-            ) : (
-              <AccessTimeIcon sx={{ color: "text.disabled" }} />
-            )}
-          </Box>
-          <Stack spacing={1.5}>
-            <Box
-              display="flex"
-              alignItems="center"
-              gap={1.5}
-              color="text.secondary"
-            >
-              <CalendarTodayIcon fontSize="small" />
-              <Typography variant="body2">
-                {data.date}, {data.time}
+            <Box display="flex" alignItems="center" gap={1} color="text.secondary">
+              <EventNoteIcon fontSize="small" />
+              <Typography variant="body2" fontWeight="medium">
+                Meetings
               </Typography>
             </Box>
-            <Box
-              display="flex"
-              alignItems="center"
-              gap={1.5}
-              color="text.secondary"
-            >
-              <PersonIcon fontSize="small" />
-              <Typography variant="body2">{data.email}</Typography>
-            </Box>
-          </Stack>
+            
+            <Chip 
+              label={data.meetingCount} 
+              color="primary" 
+              size="small"
+              sx={{ fontWeight: 'bold', minWidth: '40px' }} 
+            />
+          </Box>
+
         </CardContent>
-        <Divider />
-        <CardActions sx={{ justifyContent: "flex-end", px: 2, py: 1 }}>
-          <IconButton size="small" color="primary" aria-label="view">
-            <VisibilityIcon />
-          </IconButton>
-          <IconButton size="small" color="error" aria-label="delete">
-            <DeleteIcon />
-          </IconButton>
-        </CardActions>
-      </Card>
-    );
-  };
+      </CardActionArea>
+    </Card>
+  );
+};
+
 
   const meetingList = meeting.meetings?.meetings ?? [];
 
@@ -801,9 +809,9 @@ function MeetingHistory() {
               )
             ) : (
               <Grid container spacing={3}>
-                {mockData.map((meeting) => (
+                {mockCustomerData.map((meeting) => (
                   <Grid item xs={12} sm={6} md={4} lg={3} key={meeting.id}>
-                    <MeetingCard data={meeting} />
+                    <CustomerCard data={meeting} />
                   </Grid>
                 ))}
               </Grid>
