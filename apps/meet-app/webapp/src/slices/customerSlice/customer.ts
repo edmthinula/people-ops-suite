@@ -22,28 +22,36 @@ import { SnackMessage } from "@config/constant";
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { enqueueSnackbarMessage } from "@slices/commonSlice/common";
 
-
 interface Customer {
   id: string;
   name: string;
 }
-
+interface customerMeetingsSummary {
+  customerName: string;
+  meetingCount: number;
+}
+interface MeetingsSummary {
+  meetingsSummary: customerMeetingsSummary[];
+}
 interface CustomerState {
   state: State;
   submitState: State;
+  meetingsSummaryState: State;
   stateMessage: string | null;
   errorMessage: string | null;
   customers: Customer[] | null;
+  meetingsSummary: MeetingsSummary | null;
   backgroundProcess: boolean;
   backgroundProcessMessage: string | null;
 }
-
 const initialState: CustomerState = {
   state: State.idle,
   submitState: State.idle,
+  meetingsSummaryState: State.idle,
   stateMessage: "",
   errorMessage: "",
   customers: null,
+  meetingsSummary: null,
   backgroundProcess: false,
   backgroundProcessMessage: null,
 };
@@ -72,12 +80,44 @@ export const fetchCustomers = createAsyncThunk(
                   ? SnackMessage.error.fetchCustomers
                   : "An unknown error occurred.",
               type: "error",
-            })
+            }),
           );
           reject(error.response.data.message);
         });
     });
-  }
+  },
+);
+
+export const fetchCustomersMeetingsSummary = createAsyncThunk(
+  "customers/fetchMeetingsSummary",
+  async (_, { dispatch, rejectWithValue }) => {
+    APIService.getCancelToken().cancel();
+    const newCancelTokenSource = APIService.updateCancelToken();
+    return new Promise<MeetingsSummary>((resolve, reject) => {
+      APIService.getInstance()
+        .get(AppConfig.serviceUrls.customersMeetingsSummary, {
+          cancelToken: newCancelTokenSource.token,
+        })
+        .then((response) => {
+          resolve(response.data);
+        })
+        .catch((error) => {
+          if (axios.isCancel(error)) {
+            return rejectWithValue("Request canceled");
+          }
+          dispatch(
+            enqueueSnackbarMessage({
+              message:
+                error.response?.status === HttpStatusCode.InternalServerError
+                  ? SnackMessage.error.fetchCustomersMeetingsSummary
+                  : "An unknown error occurred when retrieving the customers meetings summary",
+              type: "error",
+            }),
+          );
+          reject(error.response.data.message);
+        });
+    });
+  },
 );
 
 const CustomerSlice = createSlice({
@@ -103,6 +143,19 @@ const CustomerSlice = createSlice({
         state.state = State.failed;
         state.stateMessage = "Failed to fetch customers!";
       })
+      .addCase(fetchCustomersMeetingsSummary.pending, (state) => {
+        state.meetingsSummaryState = State.loading;
+        state.stateMessage = "Fetching customers meetings summary...";
+      })
+      .addCase(fetchCustomersMeetingsSummary.fulfilled, (state, action) => {
+        state.meetingsSummaryState = State.success;
+        state.stateMessage = "Successfully fetched!";
+        state.meetingsSummary = action.payload;
+      })
+      .addCase(fetchCustomersMeetingsSummary.rejected, (state) => {
+        state.meetingsSummaryState = State.failed;
+        state.stateMessage = "Failed to fetch meetings summary!";
+      });
   },
 });
 

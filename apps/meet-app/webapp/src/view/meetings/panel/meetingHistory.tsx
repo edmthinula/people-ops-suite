@@ -32,11 +32,7 @@ import {
   ListItem,
   Paper,
   InputAdornment,
-  CardActions,
-  IconButton,
-  Stack,
   Tooltip,
-  CardActionArea,
 } from "@mui/material";
 import { State } from "@/types/types";
 import useDebounce from "@utils/useDebounce";
@@ -69,9 +65,11 @@ import {
 import { useTheme, alpha } from "@mui/material/styles";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { fetchCustomers } from "@root/src/slices/customerSlice/customer";
-
-import EventNoteIcon from "@mui/icons-material/EventNote";
+import {
+  fetchCustomers,
+  fetchCustomersMeetingsSummary,
+} from "@root/src/slices/customerSlice/customer";
+import CustomerCard from "@component/ui/CustomerCard";
 
 interface Attachment {
   title: string;
@@ -104,7 +102,13 @@ function MeetingHistory() {
     (state) => state.meeting.dateRangeMeetings,
   );
   const upcomingMeetingsLoading = useAppSelector(
-    (state) => state.meeting.dateRangeStatus,
+    (state) => state.meeting.dateRangeState,
+  );
+  const meetingsSummary = useAppSelector(
+    (state) => state.customer.meetingsSummary,
+  );
+  const meetingsSummaryState = useAppSelector(
+    (state) => state.customer.meetingsSummaryState,
   );
   const customers = useAppSelector((state) => state.customer.customers) || [];
   const customersState = useAppSelector((state) => state.customer.state);
@@ -148,6 +152,10 @@ function MeetingHistory() {
     return () => {
       mainFetchPromise.abort();
     };
+  }, [dispatch, debouncedSearchTerm]);
+
+  useEffect(() => {
+    dispatch(fetchCustomersMeetingsSummary());
   }, [dispatch, debouncedSearchTerm]);
 
   useEffect(() => {
@@ -308,89 +316,9 @@ function MeetingHistory() {
     }
   };
 
-
-const mockCustomerData: CustomerMeetingSummary[] = [
-
-];
-  const CustomerCard = ({ data }: { data: CustomerMeetingSummary }) => {
-  
-  const handleCardClick = (id: number) => {
-    console.log(`Maps to /customer/${id}`);
+  const handlePress = (id: number) => {
+    console.log("Customer ID received from child:", id);
   };
-
-  return (
-    <Card
-      variant="outlined"
-      sx={{
-        height: "100%",
-        borderRadius: 2,
-        boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-        transition: "transform 0.2s, box-shadow 0.2s, border-color 0.2s",
-        "&:hover": {
-          transform: "translateY(-2px)",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          borderColor: "primary.main", 
-        },
-      }}
-    >
-      <CardActionArea 
-        onClick={() => handleCardClick(data.id)} 
-        sx={{ height: "100%", display: 'flex', flexDirection: 'column', alignItems: 'stretch', justifyContent: 'flex-start' }}
-      >
-        <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
-          <Box>
-            <Typography variant="overline" color="text.secondary" fontWeight="bold">
-              Customer
-            </Typography>
-            <Typography
-              variant="h6"
-              component="div"
-              fontWeight="bold"
-              sx={{ 
-                lineHeight: 1.3,
-                display: '-webkit-box',
-                overflow: 'hidden',
-                WebkitBoxOrient: 'vertical',
-                WebkitLineClamp: 2,
-              }}
-            >
-              {data.customerName}
-            </Typography>
-          </Box>
-
-          <Box sx={{ flexGrow: 1 }} />
-          <Box
-            display="flex"
-            alignItems="center"
-            justifyContent="space-between"
-            bgcolor="grey.50" 
-            p={2}
-            borderRadius={2}
-            border="1px solid"
-            borderColor="divider"
-          >
-            <Box display="flex" alignItems="center" gap={1} color="text.secondary">
-              <EventNoteIcon fontSize="small" />
-              <Typography variant="body2" fontWeight="medium">
-                Meetings
-              </Typography>
-            </Box>
-            
-            <Chip 
-              label={data.meetingCount} 
-              color="primary" 
-              size="small"
-              sx={{ fontWeight: 'bold', minWidth: '40px' }} 
-            />
-          </Box>
-
-        </CardContent>
-      </CardActionArea>
-    </Card>
-  );
-};
-
-
   const meetingList = meeting.meetings?.meetings ?? [];
 
   return (
@@ -809,11 +737,38 @@ const mockCustomerData: CustomerMeetingSummary[] = [
               )
             ) : (
               <Grid container spacing={3}>
-                {mockCustomerData.map((meeting) => (
-                  <Grid item xs={12} sm={6} md={4} lg={3} key={meeting.id}>
-                    <CustomerCard data={meeting} />
+                {meetingsSummaryState === State.loading ? (
+                  <Grid
+                    item
+                    xs={12}
+                    sx={{ display: "flex", justifyContent: "center", p: 4 }}
+                  >
+                    <CircularProgress />
                   </Grid>
-                ))}
+                ) : meetingsSummary?.meetingsSummary &&
+                  meetingsSummary.meetingsSummary.length > 0 ? (
+                  meetingsSummary.meetingsSummary.map((summary, index) => (
+                    <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
+                      <CustomerCard
+                        id={index}
+                        customerName={summary.customerName}
+                        meetingCount={summary.meetingCount}
+                        onCardClick={handlePress}
+                      />
+                    </Grid>
+                  ))
+                ) : (
+                  <Grid item xs={12}>
+                    <Typography
+                      variant="body1"
+                      color="text.secondary"
+                      align="center"
+                      sx={{ mt: 4 }}
+                    >
+                      No customer summaries available.
+                    </Typography>
+                  </Grid>
+                )}
               </Grid>
             )}
           </Box>

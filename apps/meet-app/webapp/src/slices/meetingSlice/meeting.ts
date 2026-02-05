@@ -47,7 +47,7 @@ interface MeetingState {
   meetings: Meetings | null;
   meetingTypes: string[] | null;
   dateRangeMeetings: Meeting[] | null;
-  dateRangeStatus: State;
+  dateRangeState: State;
   backgroundProcess: boolean;
   backgroundProcessMessage: string | null;
 }
@@ -94,7 +94,7 @@ const initialState: MeetingState = {
   meetings: null,
   meetingTypes: null,
   dateRangeMeetings: null,
-  dateRangeStatus: State.idle,
+  dateRangeState: State.idle,
   backgroundProcess: false,
   backgroundProcessMessage: null,
 };
@@ -387,15 +387,15 @@ const MeetingSlice = createSlice({
         state.stateMessage = "Failed to fetch!";
       })
       .addCase(fetchMeetingsByDates.pending, (state) => {
-        state.dateRangeStatus = State.loading;
+        state.dateRangeState = State.loading;
         state.stateMessage = "Fetching meetings by dates...";
       })
       .addCase(fetchMeetingsByDates.fulfilled, (state, action) => {
-        state.dateRangeStatus = State.success;
+        state.dateRangeState = State.success;
         state.dateRangeMeetings = action.payload.meetings;
       })
       .addCase(fetchMeetingsByDates.rejected, (state) => {
-        state.dateRangeStatus = State.failed;
+        state.dateRangeState = State.failed;
       })
       .addCase(deleteMeeting.pending, (state) => {
         state.submitState = State.loading;
