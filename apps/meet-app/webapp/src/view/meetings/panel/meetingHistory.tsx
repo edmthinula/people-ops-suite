@@ -70,6 +70,7 @@ import {
   fetchCustomersMeetingsSummary,
 } from "@root/src/slices/customerSlice/customer";
 import CustomerCard from "@component/ui/CustomerCard";
+import { useNavigate } from "react-router-dom";
 
 interface Attachment {
   title: string;
@@ -77,11 +78,6 @@ interface Attachment {
   fileUrl: string;
   iconLink: string;
   mimeType: string;
-}
-interface CustomerMeetingSummary {
-  id: number;
-  customerName: string;
-  meetingCount: number;
 }
 const formatDateTime = (dateTimeStr: string) => {
   const utcDate = new Date(dateTimeStr + " UTC");
@@ -97,6 +93,7 @@ const formatDateTime = (dateTimeStr: string) => {
 function MeetingHistory() {
   const theme = useTheme();
   const dispatch = useAppDispatch();
+  const navigate = useNavigate()
   const meeting = useAppSelector((state) => state.meeting);
   const upcomingMeetings = useAppSelector(
     (state) => state.meeting.dateRangeMeetings,
@@ -317,7 +314,7 @@ function MeetingHistory() {
   };
 
   const handlePress = (id: number) => {
-    console.log("Customer ID received from child:", id);
+    navigate(`/meetings/${id}`)
   };
   const meetingList = meeting.meetings?.meetings ?? [];
 
