@@ -80,6 +80,7 @@ export const tokens = (mode: PaletteMode) => ({
         error: { 100: "#fe4336" },
         gradient: "linear-gradient(to bottom, #f1f2f3, #d1d3d4)",
         brand: "#ff7300",
+        background: { default: "#fcfcfc" },
       }),
 });
 
@@ -90,10 +91,29 @@ declare module "@mui/material/styles" {
     dataGrid?: string;
     layout?: string;
     gradient?: string;
+    form?: string;
+    banner?: string;
   }
 
+  interface Palette {
+    analytics: {
+      cardBg: string;
+      gridLines: string;
+      chartLine1: string;
+      chartLine2: string;
+      progressBarBg: string;
+      pieColors: string[];
+    };
+  }
   interface PaletteOptions {
-    background?: Partial<TypeBackground>;
+    analytics?: {
+      cardBg?: string;
+      gridLines?: string;
+      chartLine1?: string;
+      chartLine2?: string;
+      progressBarBg?: string;
+      pieColors?: string[];
+    };
   }
 }
 
@@ -127,6 +147,20 @@ export const themeSettings = (mode: PaletteMode) => {
               layout: colors.grey[100],
               gradient: colors.gradient,
             },
+            analytics: {
+              cardBg: "#f5f5f5",
+              gridLines: "#eee",
+              chartLine1: "#ff7300",
+              chartLine2: "#473f38",
+              progressBarBg: "#bec0c2",
+              pieColors: [
+                "#ff7300",
+                "#de6300",
+                "#9e4500",
+                "#632800",
+                "#2e0f00",
+              ],
+            },
           }
         : {
             primary: {
@@ -149,6 +183,20 @@ export const themeSettings = (mode: PaletteMode) => {
               dataGrid: colors.grey[300],
               layout: colors.grey[100],
               gradient: colors.gradient,
+            },
+            analytics: {
+              cardBg: "#f5f5f5",
+              gridLines: "#eee",
+              chartLine1: "#ff7300",
+              chartLine2: "#473f38",
+              progressBarBg: "#bec0c2",
+              pieColors: [
+                "#ff7300",
+                "#de6300",
+                "#9e4500",
+                "#632800",
+                "#2e0f00",
+              ],
             },
           }),
     },
