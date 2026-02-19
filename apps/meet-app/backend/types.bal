@@ -57,6 +57,14 @@ public type UserInfoResponse record {|
     string? employeeThumbnail;
     # User Privileges
     int[] privileges;
+    # Team of the host
+    string? team;
+    # Sub team of the host 
+    string? subTeam;
+    # Business unit  of the host
+    string? businessUnit;
+    # Unit  of the host
+    string? unit;
 |};
 
 # Represents the response after successfully creating a meeting.

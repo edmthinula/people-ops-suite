@@ -138,7 +138,7 @@ function MeetingHistory() {
   useEffect(() => {
     setPage(0);
     const mainFetchPromise = dispatch(
-      fetchMeetings({ title: debouncedSearchTerm, limit: pageSize, offset: 0 }),
+      fetchMeetings({ searchString: debouncedSearchTerm, limit: pageSize, offset: 0 }),
     );
     mainFetchPromise.unwrap().then(() => {
       if (!hasFetchedUpcoming && upcomingMeetingsLoading != State.success) {
@@ -159,7 +159,7 @@ function MeetingHistory() {
     if (page > 0) {
       dispatch(
         fetchMeetings({
-          title: debouncedSearchTerm,
+          searchString: debouncedSearchTerm,
           limit: pageSize,
           offset: page * pageSize,
         }),
@@ -237,7 +237,7 @@ function MeetingHistory() {
             setPage(0);
             dispatch(
               fetchMeetings({
-                title: debouncedSearchTerm,
+                searchString: debouncedSearchTerm,
                 limit: pageSize,
                 offset: 0,
               }),

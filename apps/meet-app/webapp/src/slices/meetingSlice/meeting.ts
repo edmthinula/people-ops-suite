@@ -171,23 +171,15 @@ export const addMeetings = createAsyncThunk(
 export const fetchMeetings = createAsyncThunk(
   "meeting/fetchMeetings",
   async (
-    {
-      title,
-      limit,
-      offset,
-    }: {
-      title: string | null;
-      limit: number;
-      offset: number;
-    },
-    { dispatch },
+    { searchString, limit, offset }: { searchString: string | null; limit: number; offset: number },
+    { dispatch }
   ) => {
     APIService.getCancelToken().cancel();
     const newCancelTokenSource = APIService.updateCancelToken();
     return new Promise<Meetings>((resolve, reject) => {
       APIService.getInstance()
         .get(AppConfig.serviceUrls.meetings, {
-          params: { title, limit, offset },
+          params: { searchString, limit, offset },
           cancelToken: newCancelTokenSource.token,
         })
         .then((response) => {
