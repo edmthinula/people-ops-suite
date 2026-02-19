@@ -558,7 +558,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         };
     }
 
-        # Get customers meetings summary
+    # Get customers meetings summary
     #
     # + return - MeetingsSummaryResponse | Error
     resource function get customers/meetings/summary(http:RequestContext ctx) returns MeetingsSummaryResponse|http:Forbidden|http:InternalServerError {
@@ -587,7 +587,6 @@ service http:InterceptableService / on new http:Listener(9090) {
                 }
             };
         }
-        log:printInfo(meetingsSummary.toBalString());
         return {
             meetingsSummary: meetingsSummary
         };
