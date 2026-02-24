@@ -28,6 +28,7 @@ import ballerina/time;
 import ballerinax/googleapis.calendar as gcalendar;
 
 public configurable AppConfig appConfig = ?;
+public configurable SalesDesignations salesDesignations = ?;
 
 final cache:Cache cache = new ({
     capacity: 2000,
@@ -61,12 +62,6 @@ service class ErrorInterceptor {
 
 service http:InterceptableService / on new http:Listener(9090) {
 
-    # Initialize the service.
-    #
-    function init() {
-        log:printInfo("Successfully started the meet app...");
-    }
-
     # Request interceptor.
     #
     # + return - authorization:JwtInterceptor, ErrorInterceptor
@@ -94,7 +89,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        people:Employee|UserInfoResponse|error employee = getUserInfo(userInfo.email, cache);
+        people:Employee|UserInfoResponse|error employee = getEmployeeInfo(userInfo.email, cache);
         if employee is error {
             string customError = string `Error occurred while retrieving user data: ${userInfo.email}!`;
             log:printError(customError, employee);
@@ -308,7 +303,7 @@ service http:InterceptableService / on new http:Listener(9090) {
             };
         }
 
-        people:Employee|UserInfoResponse|error employee = getUserInfo(userInfo.email, cache);
+        people:Employee|UserInfoResponse|error employee = getEmployeeInfo(userInfo.email, cache);
         if employee is error {
             string customError = string `Error occurred while retrieving user data: ${userInfo.email}!`;
             log:printError(customError, employee);
@@ -518,21 +513,44 @@ service http:InterceptableService / on new http:Listener(9090) {
 
         authorization:CustomJwtPayload|error userInfo = ctx.getWithType(authorization:HEADER_USER_INFO);
         if userInfo is error {
-            return <http:InternalServerError>{body: {message: "User information header not found!"}};
+            string customError = "User information header not found!";
+            log:printError(customError, userInfo);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
         }
         boolean isAdmin = authorization:checkPermissions([authorization:authorizedRoles.SALES_ADMIN], userInfo.groups);
         if (!isAdmin && (host != ()) && (host != userInfo.email)) {
-            return <http:Forbidden>{body: {message: "Insufficient privileges to filter by host!"}};
+            string customError = "Insufficient privileges to filter by host!";
+            log:printError(customError);
+            return <http:Forbidden>{
+                body: {
+                    message: customError
+                }
+            };
         }
         if (searchString is string && (host is string || title is string)) {
-            return <http:BadRequest>{body: {message: "searchString cannot be combined with host or title filters."}};
+            string customError = "searchString cannot be combined with host or title filters.";
+            log:printError(customError);
+            return <http:BadRequest>{
+                body: {
+                    message: customError
+                }
+            };
         }
         string? hostOrInternalParticipant = (host is () && !isAdmin) ? userInfo.email : null;
         database:Meeting[]|error meetingsResult = database:fetchMeetings(hostOrInternalParticipant, title, host, searchString,
                 startTime, endTime, internalParticipants, 'limit, offset);
         if meetingsResult is error {
-            log:printError("Error occurred while retrieving the meetings!", meetingsResult);
-            return <http:InternalServerError>{body: {message: "Error occurred while retrieving the meetings!"}};
+            string customError = "Error occurred while retrieving the meetings!";
+            log:printError(customError, meetingsResult);
+            return <http:InternalServerError>{
+                body: {
+                    message: customError
+                }
+            };
         }
         database:Meeting[] meetingList = meetingsResult;
         if !isAdmin {
@@ -658,7 +676,7 @@ service http:InterceptableService / on new http:Listener(9090) {
         foreach gcalendar:Attachment attachment in calendarEventAttachments ?: [] {
             if attachment.mimeType == "video/mp4" {
                 drive:DrivePermissionResponse|error permissionResult = drive:setFilePermission(
-                        <string>attachment.fileId, drive:EDITOR, drive:USER, meeting.host
+                    <string>attachment.fileId, drive:EDITOR, drive:USER, meeting.host
                 );
 
                 if permissionResult is error {

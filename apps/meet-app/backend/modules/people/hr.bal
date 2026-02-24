@@ -27,10 +27,10 @@ public isolated function fetchEmployeesBasicInfo(string workEmail) returns Emplo
                 lastName,
                 jobRole,
                 employeeThumbnail,
+                businessUnit: businessUnit,
                 team: department,
                 subTeam: team,
-                unit: subTeam,
-                businessUnit: businessUnit
+                unit: subTeam
             }
         }
     `;
@@ -60,7 +60,7 @@ public isolated function getEmployees(string[]? emails = ()) returns EmployeeBas
             lastName
             employeeThumbnail
             team: department
-            subTeam:team 
+            subTeam: team 
         }
     }`;
 
