@@ -236,6 +236,7 @@ isolated function getMeetingsSummaryQuery() returns sql:ParameterizedQuery =>
     GROUP BY customer_name
     ORDER BY customer_name ASC;
 `;
+
 # Build query to count meetings grouped by Month.
 #
 # + startTime - Start of the range

@@ -111,9 +111,9 @@ public type AppConfig record {|
 
 # Represents the response when retrieving customers meetings summary.
 public type MeetingsSummaryResponse record {|
-    #list of meetings summary
+    # list of meetings summary
     database:MeetingSummary[] meetingsSummary;
-|}
+|};
 
 # Represent the designations of a sales team.
 public type SalesDesignations record {|

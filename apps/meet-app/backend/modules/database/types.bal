@@ -107,6 +107,7 @@ public type RawMeetingTypes record {|
     # Meeting Types
     string types;
 |};
+
 # [Database]MeetingSummaryTypes type.
 public type MeetingSummary record {|
     # Customer name

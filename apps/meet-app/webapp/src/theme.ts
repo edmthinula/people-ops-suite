@@ -18,6 +18,18 @@ import { PaletteMode, alpha } from "@mui/material";
 import { PaletteColorOptions, PaletteColor } from "@mui/material/styles";
 
 declare module "@mui/material/styles" {
+  interface Theme {
+    customShadows: {
+      modern: string;
+      hover: string;
+    };
+  }
+  interface ThemeOptions {
+    customShadows?: {
+      modern: string;
+      hover: string;
+    };
+  }
   interface Palette {
     brand: PaletteColor;
   }
@@ -120,6 +132,15 @@ declare module "@mui/material/styles" {
 // MUI Theme Settings
 export const themeSettings = (mode: PaletteMode) => {
   const colors = tokens(mode);
+  const modernShadow =
+    mode === "dark"
+      ? "0 4px 20px 0 rgba(0,0,0,0.5)"
+      : "0 4px 20px 0 rgba(0,0,0,0.05)";
+
+  const hoverShadow =
+    mode === "dark"
+      ? "0 8px 30px 0 rgba(0,0,0,0.6)"
+      : "0 8px 30px 0 rgba(0,0,0,0.1)";
 
   return {
     palette: {
@@ -199,6 +220,10 @@ export const themeSettings = (mode: PaletteMode) => {
               ],
             },
           }),
+    },
+    customShadows: {
+      modern: modernShadow,
+      hover: hoverShadow,
     },
     typography: {
       fontSize: 11,

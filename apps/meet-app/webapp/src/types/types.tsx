@@ -35,3 +35,11 @@ export interface CommonCardProps {
   actions: React.ReactElement<any, string | React.JSXElementConstructor<any>>;
   dataCardIndex: number;
 }
+
+export interface Attachment {
+  title: string;
+  fileId: string;
+  fileUrl: string;
+  iconLink: string;
+  mimeType: string;
+}

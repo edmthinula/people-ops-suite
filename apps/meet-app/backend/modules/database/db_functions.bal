@@ -116,6 +116,7 @@ public isolated function fetchMeetingsSummary() returns MeetingSummary[]|error {
     return from MeetingSummary meetingSummary in resultStream
         select meetingSummary;
 }
+
 # Fetches scheduled counts grouped by month for a date range.
 #
 # + startTime - Start ISO string
