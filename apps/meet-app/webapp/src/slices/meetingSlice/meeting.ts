@@ -207,10 +207,10 @@ export const fetchMeetingsByDates = createAsyncThunk(
   "meeting/fetchMeetingsByDates",
   async (
     {
-      startDate,
-      endDate,
+      startTime,
+      endTime,
       limit,
-    }: { startDate: string; endDate: string; limit: number },
+    }: { startTime: string; endTime: string; limit: number },
     { dispatch },
   ) => {
     APIService.getCancelToken().cancel();
@@ -218,7 +218,7 @@ export const fetchMeetingsByDates = createAsyncThunk(
     return new Promise<Meetings>((resolve, reject) => {
       APIService.getInstance()
         .get(AppConfig.serviceUrls.meetings, {
-          params: { startDate, endDate, limit },
+          params: { startTime, endTime, limit },
           cancelToken: newCancelTokenSource.token,
         })
         .then((response) => {

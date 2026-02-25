@@ -196,8 +196,8 @@ function MeetingHistory() {
     twoDaysLater.setDate(today.getDate() + 2);
     return dispatch(
       fetchMeetingsByDates({
-        startDate: today.toISOString(),
-        endDate: twoDaysLater.toISOString(),
+        startTime: today.toISOString(),
+        endTime: twoDaysLater.toISOString(),
         limit: 10,
       }),
     );
