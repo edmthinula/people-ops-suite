@@ -73,10 +73,50 @@ public isolated function getEmployees(string[]? emails = ()) returns EmployeeBas
     while fetchMore {
         EmployeesResponse response = check hrClient->execute(
             document,
-            {filter: filter, 'limit: DEFAULT_LIMIT, offset: employees.length()}
+            {filter, 'limit: DEFAULT_LIMIT, offset: employees.length()}
         );
         employees.push(...response.data.employees);
         fetchMore = response.data.employees.length() > 0;
     }
     return employees;
+}
+
+# Retrieves organization details including nested departments, teams, and sub-teams.
+#
+# + filter - Filter criteria (Business Unit IDs or Names)
+# + return - Array of Business Units | Error
+public isolated function getOrgDetails(OrgDetailsFilter? filter = ()) returns BusinessUnit[]|error {
+    string document = string `
+        query getOrgDetails($filter: OrgDetailsFilter, $limit: Int, $offset: Int) {
+            orgDetails(filter: $filter, limit: $limit, offset: $offset) {
+                id
+                businessUnit
+                departments {
+                    id
+                    department
+                    teams {
+                        id
+                        team
+                        subTeams {
+                            id
+                            subTeam
+                        }
+                    }
+                }
+            }
+        }
+    `;
+
+    BusinessUnit[] businessUnits = [];
+    boolean fetchMore = true;
+    while fetchMore {
+        OrgDetailsResponse response = check hrClient->execute(
+            document,
+            {filter, 'limit: DEFAULT_LIMIT, offset: businessUnits.length()}
+        );
+        businessUnits.push(...response.data.orgDetails);
+        fetchMore = response.data.orgDetails.length() > 0;
+    }
+
+    return businessUnits;
 }
