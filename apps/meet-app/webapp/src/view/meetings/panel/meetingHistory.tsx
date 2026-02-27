@@ -86,15 +86,6 @@ function MeetingHistory() {
   const customers = useAppSelector((state) => state.customer.customers) || [];
   const customersState = useAppSelector((state) => state.customer.state);
 
-  const MODERN_SHADOW =
-    theme.palette.mode === "dark"
-      ? "0 4px 20px 0 rgba(0,0,0,0.5)"
-      : "0 4px 20px 0 rgba(0,0,0,0.05)";
-  const HOVER_SHADOW =
-    theme.palette.mode === "dark"
-      ? "0 8px 30px 0 rgba(0,0,0,0.6)"
-      : "0 8px 30px 0 rgba(0,0,0,0.1)";
-
   const [page, setPage] = useState(0);
   const pageSize = 10;
   const observerTarget = useRef(null);
@@ -345,7 +336,7 @@ function MeetingHistory() {
             sx={{
               width: 350,
               bgcolor: "background.paper",
-              boxShadow: MODERN_SHADOW,
+              boxShadow: (theme) => theme.customShadows.modern,
               borderRadius: 2,
               "& .MuiOutlinedInput-root": {
                 borderRadius: 2,
@@ -396,7 +387,7 @@ function MeetingHistory() {
                     p: 6,
                     textAlign: "center",
                     borderRadius: 3,
-                    boxShadow: MODERN_SHADOW,
+                    boxShadow: (theme) => theme.customShadows.modern,
                     bgcolor: "background.paper",
                   }}
                 >
@@ -475,7 +466,7 @@ function MeetingHistory() {
           <Grid item xs={12} md={4}>
             <Card
               sx={{
-                boxShadow: MODERN_SHADOW,
+                boxShadow: (theme) => theme.customShadows.modern,
                 borderRadius: 3,
                 position: "sticky",
                 top: 24,

@@ -35,6 +35,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import VideoCameraBackIcon from '@mui/icons-material/VideoCameraBack';
 import LockIcon from '@mui/icons-material/Lock';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import { useAppDispatch, useAppSelector } from '@root/src/slices/store';
 
 // --- Custom Components & Styles ---
 
@@ -97,9 +98,12 @@ const FileChip = ({ icon, name, size }:{icon:React.ReactElement,name:string,size
 // --- Main Dashboard Component ---
 
 export default function CustomerMeetings() {
+  const dispatch = useAppDispatch();
+  const meeting = useAppSelector((state) => state.meeting);
   return (
     <Box sx={{ bgcolor: '#f9fafb', minHeight: '100vh', py: 4 }}>
       <Container maxWidth="xl">
+
         
         {/* === HEADER SECTION === */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 4, flexWrap: 'wrap', gap: 2 }}>

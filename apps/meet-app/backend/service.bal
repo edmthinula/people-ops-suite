@@ -435,10 +435,10 @@ service http:InterceptableService / on new http:Listener(9090) {
                     isRecurring: true,
                     recurrence_rule: rule,
                     meetingType: meetingType,
-                    unit: unit,
+                    businessUnit: businessUnit,
                     team: team,
                     subTeam: subTeam,
-                    businessUnit: businessUnit
+                    unit: unit
                 };
                 int|error meetingId = database:addMeeting(addMeetingPayload, userInfo.email);
                 if meetingId is error {
@@ -473,10 +473,10 @@ service http:InterceptableService / on new http:Listener(9090) {
                 isRecurring: false,
                 recurrence_rule: null,
                 meetingType: meetingType,
-                unit: unit,
+                businessUnit: businessUnit,
                 team: team,
                 subTeam: subTeam,
-                businessUnit: businessUnit
+                unit: unit
             };
 
             // Insert the meeting details into the database.
