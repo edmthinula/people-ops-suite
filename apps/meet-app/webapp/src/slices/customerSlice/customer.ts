@@ -62,30 +62,31 @@ export const fetchCustomers = createAsyncThunk(
   async (_, { dispatch, rejectWithValue }) => {
     APIService.getCancelToken().cancel();
     const newCancelTokenSource = APIService.updateCancelToken();
-    return new Promise<Customer[]>((resolve, reject) => {
-      APIService.getInstance()
-        .get(AppConfig.serviceUrls.customers, {
+    try {
+      const response = await APIService.getInstance().get(
+        AppConfig.serviceUrls.customers,
+        {
           cancelToken: newCancelTokenSource.token,
-        })
-        .then((response) => {
-          resolve(response.data);
-        })
-        .catch((error) => {
-          if (axios.isCancel(error)) {
-            return rejectWithValue("Request canceled");
-          }
-          dispatch(
-            enqueueSnackbarMessage({
-              message:
-                error.response?.status === HttpStatusCode.InternalServerError
-                  ? SnackMessage.error.fetchCustomers
-                  : "An unknown error occurred.",
-              type: "error",
-            }),
-          );
-          reject(error.response.data.message);
-        });
-    });
+        },
+      );
+      return response.data as Customer[];
+    } catch (error: any) {
+      if (axios.isCancel(error)) {
+        return rejectWithValue("Request canceled");
+      }
+      dispatch(
+        enqueueSnackbarMessage({
+          message:
+            error.response?.status === HttpStatusCode.InternalServerError
+              ? SnackMessage.error.fetchCustomers
+              : "An unknown error occurred.",
+          type: "error",
+        }),
+      );
+      return rejectWithValue(
+        error?.response?.data?.message ?? "Request failed",
+      );
+    }
   },
 );
 
@@ -105,31 +106,33 @@ export const fetchCustomersMeetingsSummary = createAsyncThunk(
   ) => {
     APIService.getCancelToken().cancel();
     const newCancelTokenSource = APIService.updateCancelToken();
-    return new Promise<MeetingsSummary>((resolve, reject) => {
-      APIService.getInstance()
-        .get(AppConfig.serviceUrls.customersMeetingsSummary, {
+    try {
+      const response = await APIService.getInstance().get(
+        AppConfig.serviceUrls.customersMeetingsSummary,
+        {
           params: { customerName, limit, offset },
           cancelToken: newCancelTokenSource.token,
-        })
-        .then((response) => {
-          resolve(response.data);
-        })
-        .catch((error) => {
-          if (axios.isCancel(error)) {
-            return rejectWithValue("Request canceled");
-          }
-          dispatch(
-            enqueueSnackbarMessage({
-              message:
-                error.response?.status === HttpStatusCode.InternalServerError
-                  ? SnackMessage.error.fetchCustomersMeetingsSummary
-                  : "An unknown error occurred when retrieving the customers meetings summary",
-              type: "error",
-            }),
-          );
-          reject(error?.response?.data?.message ?? error?.message ?? "Request failed");
-        });
-    });
+        },
+      );
+      return response.data as MeetingsSummary;
+    } catch (error: any) {
+      if (axios.isCancel(error)) {
+        return rejectWithValue("Request canceled");
+      }
+
+      dispatch(
+        enqueueSnackbarMessage({
+          message:
+            error.response?.status === HttpStatusCode.InternalServerError
+              ? SnackMessage.error.fetchCustomersMeetingsSummary
+              : "An unknown error occurred when retrieving the customers meetings summary",
+          type: "error",
+        }),
+      );
+      return rejectWithValue(
+        error?.response?.data?.message ?? error?.message ?? "Request failed",
+      );
+    }
   },
 );
 
