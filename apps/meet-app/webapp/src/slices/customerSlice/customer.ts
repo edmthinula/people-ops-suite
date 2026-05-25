@@ -1,4 +1,4 @@
-// Copyright (c) 2025 WSO2 LLC. (https://www.wso2.com).
+// Copyright (c) 2026 WSO2 LLC. (https://www.wso2.com).
 //
 // WSO2 LLC. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -62,31 +62,31 @@ export const fetchCustomers = createAsyncThunk(
   async (_, { dispatch, rejectWithValue }) => {
     APIService.getCancelToken().cancel();
     const newCancelTokenSource = APIService.updateCancelToken();
-    try {
-      const response = await APIService.getInstance().get(
-        AppConfig.serviceUrls.customers,
-        {
+    return new Promise<Customer[]>((resolve, reject) => {
+      APIService.getInstance()
+        .get(AppConfig.serviceUrls.customers, {
           cancelToken: newCancelTokenSource.token,
-        },
-      );
-      return response.data as Customer[];
-    } catch (error: any) {
-      if (axios.isCancel(error)) {
-        return rejectWithValue("Request canceled");
-      }
-      dispatch(
-        enqueueSnackbarMessage({
-          message:
-            error.response?.status === HttpStatusCode.InternalServerError
-              ? SnackMessage.error.fetchCustomers
-              : "An unknown error occurred.",
-          type: "error",
-        }),
-      );
-      return rejectWithValue(
-        error?.response?.data?.message ?? "Request failed",
-      );
-    }
+        })
+        .then((response) => {
+          resolve(response.data);
+        })
+        .catch((error) => {
+          if (axios.isCancel(error)) {
+            reject(rejectWithValue("Request canceled"));
+            return;
+          }
+          dispatch(
+            enqueueSnackbarMessage({
+              message:
+                error.response?.status === HttpStatusCode.InternalServerError
+                  ? SnackMessage.error.fetchCustomers
+                  : "An unknown error occurred.",
+              type: "error",
+            }),
+          );
+          reject(error?.response?.data?.message ?? "Request failed");
+        });
+    });
   },
 );
 
@@ -106,33 +106,36 @@ export const fetchCustomersMeetingsSummary = createAsyncThunk(
   ) => {
     APIService.getCancelToken().cancel();
     const newCancelTokenSource = APIService.updateCancelToken();
-    try {
-      const response = await APIService.getInstance().get(
-        AppConfig.serviceUrls.customersMeetingsSummary,
-        {
+    return new Promise<MeetingsSummary>((resolve, reject) => {
+      APIService.getInstance()
+        .get(AppConfig.serviceUrls.customersMeetingsSummary, {
           params: { customerName, limit, offset },
           cancelToken: newCancelTokenSource.token,
-        },
-      );
-      return response.data as MeetingsSummary;
-    } catch (error: any) {
-      if (axios.isCancel(error)) {
-        return rejectWithValue("Request canceled");
-      }
-
-      dispatch(
-        enqueueSnackbarMessage({
-          message:
-            error.response?.status === HttpStatusCode.InternalServerError
-              ? SnackMessage.error.fetchCustomersMeetingsSummary
-              : "An unknown error occurred when retrieving the customers meetings summary",
-          type: "error",
-        }),
-      );
-      return rejectWithValue(
-        error?.response?.data?.message ?? error?.message ?? "Request failed",
-      );
-    }
+        })
+        .then((response) => {
+          resolve(response.data);
+        })
+        .catch((error) => {
+          if (axios.isCancel(error)) {
+            reject(rejectWithValue("Request canceled"));
+            return;
+          }
+          dispatch(
+            enqueueSnackbarMessage({
+              message:
+                error.response?.status === HttpStatusCode.InternalServerError
+                  ? SnackMessage.error.fetchCustomersMeetingsSummary
+                  : "An unknown error occurred when retrieving the customers meetings summary",
+              type: "error",
+            }),
+          );
+          reject(
+            error?.response?.data?.message ??
+              error?.message ??
+              "Request failed",
+          );
+        });
+    });
   },
 );
 
@@ -169,7 +172,10 @@ const CustomerSlice = createSlice({
         state.stateMessage = "Successfully fetched!";
         state.customers = action.payload;
       })
-      .addCase(fetchCustomers.rejected, (state) => {
+      .addCase(fetchCustomers.rejected, (state, action) => {
+        // ✅ Ignores intentional cancellations to prevent UI error flashes
+        if (action.payload === "Request canceled") return;
+
         state.state = State.failed;
         state.stateMessage = "Failed to fetch customers!";
       })
@@ -187,7 +193,8 @@ const CustomerSlice = createSlice({
           offset,
         );
       })
-      .addCase(fetchCustomersMeetingsSummary.rejected, (state) => {
+      .addCase(fetchCustomersMeetingsSummary.rejected, (state, action) => {
+        if (action.payload === "Request canceled") return;
         state.meetingsSummaryState = State.failed;
         state.stateMessage = "Failed to fetch meetings summary!";
       });
