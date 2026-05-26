@@ -138,17 +138,20 @@ function MeetingHistory() {
 
     const promise = dispatch(fetchMeetings(params));
 
-    promise.unwrap().then(() => {
-      if (!isInitialLoadDone && upcomingMeetingsLoading === State.idle) {
-        refreshUpcomingMeetings();
-        setIsInitialLoadDone(true);
-      }
-    }).catch((error) => {
-      if (error?.name === 'AbortError' || error?.name === 'ConditionError') {
-        return;
-      }
-      console.error("Failed to fetch meetings:", error);
-    });
+    promise
+      .unwrap()
+      .then(() => {
+        if (!isInitialLoadDone && upcomingMeetingsLoading === State.idle) {
+          refreshUpcomingMeetings();
+          setIsInitialLoadDone(true);
+        }
+      })
+      .catch((error) => {
+        if (error?.name === "AbortError" || error?.name === "ConditionError") {
+          return;
+        }
+        console.error("Failed to fetch meetings:", error);
+      });
 
     return () => {
       promise.abort();
@@ -398,7 +401,7 @@ function MeetingHistory() {
   };
 
   const handlePress = (customerName: string) => {
-navigate(`/meetings/${encodeURIComponent(customerName)}`);
+    navigate(`/meetings/${encodeURIComponent(customerName)}`);
   };
 
   const meetingList = meeting?.meetings ?? [];
@@ -613,7 +616,11 @@ navigate(`/meetings/${encodeURIComponent(customerName)}`);
                   )}
                 </Grid>
                 <div
-                  ref={customerObserverTarget}
+                  ref={
+                    meetingsSummaryState === State.loading
+                      ? null
+                      : customerObserverTarget
+                  }
                   style={{
                     minHeight: "50px",
                     marginTop: "20px",
