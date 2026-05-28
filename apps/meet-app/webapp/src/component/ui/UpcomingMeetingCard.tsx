@@ -32,7 +32,6 @@ interface UpcomingMeetingCardProps {
   loadingMeetings: boolean;
   formatDateTime?: (dateTimeStr: Date) => string;
   variant?: "history" | "customer";
-  onViewAllClick?: () => void;
 }
 
 const UpcomingMeetingCard = ({
@@ -40,7 +39,6 @@ const UpcomingMeetingCard = ({
   loadingMeetings,
   formatDateTime,
   variant = "history", 
-  onViewAllClick,
 }: UpcomingMeetingCardProps) => {
   const theme = useTheme() as any;
   const getMonth = (dateString: string) => {
